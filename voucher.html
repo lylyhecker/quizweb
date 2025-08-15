@@ -1,3 +1,6 @@
+/body>
+</html>
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -5,10 +8,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Voucher</title>
 
-  <!-- Favicons theo theme (giống redeem) -->
-  <link id="faviconLight" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg" media="(prefers-color-scheme: light)">
-  <link id="faviconDark"  rel="icon" type="image/svg+xml" href="assets/favicon-dark.svg"  media="(prefers-color-scheme: dark)">
-  <link rel="alternate icon" href="assets/favicon-32.png" sizes="32x32">
+  <!-- Favicon theo theme (giống redeem) -->
+  <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg" />
 
   <!-- Tailwind (layout/spacing) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -58,7 +59,7 @@
     .big{font-size:28px;font-weight:800}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
 
-    /* Khối QR phải: ô chữ nhật bo góc bên dưới QR */
+    /* Khối QR phải */
     .qr-card{
       border:1px solid var(--border);
       border-radius:16px;
@@ -131,7 +132,6 @@
             <div id="qrcode" class="inline-block p-3 border rounded-lg"
                  style="background:var(--card); border-color:var(--border)"></div>
           </div>
-          <!-- Ô chữ nhật bo góc dưới mã -->
           <div class="qr-note mt-4">
             Dùng app đối tác để quét & xác thực. Nhân viên có thể nhập mã thủ công nếu cần.
           </div>
@@ -159,58 +159,82 @@
   <!-- QRCode.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- ===== Theme như redeem (đồng bộ đơn giản bằng localStorage + system) ===== -->
+  <!-- ===== ThemeManager (y như redeem) ===== -->
   <script>
-    const root = document.documentElement;
-    const LS_KEY = 'voucher-theme';
-    const saved = localStorage.getItem(LS_KEY);
-    if (saved) root.setAttribute('data-theme', saved);
+    (function(){
+      const LS_KEY = 'voucher-theme';
+      const root = document.documentElement;
+      let currentTheme = null;
 
-    const themeBtn  = document.getElementById('themeBtn');
-    const themeIcon = document.getElementById('themeIcon');
-    const favLight  = document.getElementById('faviconLight');
-    const favDark   = document.getElementById('faviconDark');
+      const getSystemPref = () =>
+        (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
 
-    const sysLight = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-    const curTheme = () => {
-      const t = root.getAttribute('data-theme');
-      return (t==='light'||t==='dark') ? t : (sysLight()? 'light' : 'dark');
-    };
-
-    function applyThemeUI(){
-      const t = curTheme();
-      // Đổi icon nút
-      if (themeIcon){
-        themeIcon.src = t==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
-        themeIcon.alt = t==='dark' ? 'Dark' : 'Light';
+      function applyTheme(t){
+        currentTheme = t;
+        root.setAttribute('data-theme', t);
       }
-      // Bật đúng favicon
-      if (favLight && favDark){
-        favLight.media = t==='light'?'all':'(prefers-color-scheme: light)';
-        favDark.media  = t==='dark'?'all':'(prefers-color-scheme: dark)';
+      function saveToLocal(t){ localStorage.setItem(LS_KEY, t); }
+
+      // Khởi tạo theme ban đầu
+      (function init(){
+        const ls = localStorage.getItem(LS_KEY);
+        applyTheme(ls || getSystemPref());
+        applyAssets(getTheme());
+      })();
+
+      function getTheme(){
+        return currentTheme || root.getAttribute('data-theme') || getSystemPref();
       }
-      // Re-render QR để đổi màu theo theme
-      if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
-    }
-    applyThemeUI();
+      function setTheme(t){
+        if(t!=='light' && t!=='dark') return;
+        applyTheme(t); saveToLocal(t); applyAssets(t);
+        // phát sự kiện để các phần khác (QR) biết
+        const ev = new CustomEvent('themechange', { detail: { theme: t } });
+        window.dispatchEvent(ev);
+      }
+      function toggle(){
+        const cur = getTheme();
+        setTheme(cur === 'dark' ? 'light' : 'dark');
+      }
 
-    themeBtn.addEventListener('click', () => {
-      const next = curTheme()==='dark' ? 'light' : 'dark';
-      root.setAttribute('data-theme', next);
-      localStorage.setItem(LS_KEY, next);
-      applyThemeUI();
-      showToast('Đã đổi giao diện', `Chế độ hiện tại: ${next==='dark'?'Tối':'Sáng'}`, 'info');
-    });
+      // Nút bấm
+      document.getElementById('themeBtn')?.addEventListener('click', ()=> toggle());
 
-    if (window.matchMedia){
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-        // chỉ cập nhật nếu người dùng chưa chọn tay (không có LS_KEY)
-        if (!localStorage.getItem(LS_KEY)) applyThemeUI();
-      });
-    }
+      // Cập nhật icon & favicon & QR theo theme
+      function applyAssets(mode){
+        const icon = document.getElementById('themeIcon');
+        if (icon) {
+          icon.src = mode === 'dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
+          icon.alt = mode === 'dark' ? 'Dark' : 'Light';
+        }
+        const fav = document.getElementById('favicon');
+        if (fav){
+          fav.href = mode === 'dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
+          // bust cache favicon
+          fav.href = fav.href.split('?')[0] + '?v=' + Date.now();
+        }
+        // re-render QR để bắt màu
+        if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
+      }
+
+      // Nếu hệ thống đổi theme và user chưa chọn tay -> cập nhật UI
+      if (window.matchMedia){
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        mq.addEventListener('change', () => {
+          if (!localStorage.getItem(LS_KEY)) {
+            applyTheme(getSystemPref());
+            applyAssets(getTheme());
+          }
+        });
+      }
+
+      // Lộ ra toàn cục giống redeem
+      window.ThemeManager = { getTheme, setTheme, toggle };
+      window.addEventListener('themechange', e => applyAssets(e.detail.theme));
+    })();
   </script>
 
-  <!-- ===== Toast & Confirm nâng cấp ===== -->
+  <!-- ===== Toast & Confirm ===== -->
   <script>
     function showToast(title, msg, type='info', after=null){
       const t = document.getElementById('toast');
@@ -358,7 +382,7 @@
     }
 
     // Đánh dấu đã dùng (có confirm + toast)
-    useBtn.onclick = async ()=>{
+    document.getElementById('useBtn').onclick = async ()=>{
       const id = idQ || voucherIdEl.textContent;
       if(!id) return;
       const ok = await showConfirm('Xác nhận', 'Bạn muốn đánh dấu voucher này là ĐÃ DÙNG?', 'Xác nhận');
@@ -411,6 +435,14 @@
         showToast('Lỗi tải', e.message || 'Không thể tải voucher.', 'error');
       }
     });
+
+    // Re-render QR khi nhận sự kiện themechange (từ ThemeManager)
+    window.addEventListener('themechange', () => {
+      if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
+    });
+
+    // Nút quay lại
+    document.getElementById('backBtn').onclick = ()=> history.length>1 ? history.back() : location.href='redeem.html';
   </script>
 </body>
 </html>
