@@ -5,13 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Voucher</title>
 
-  <!-- Favicon đồng bộ theo theme -->
+  <!-- Favicon theo theme -->
   <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg"/>
-
-  <!-- Tailwind cho layout nhanh -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- ===== THEME (copy từ redeem) ===== -->
+  <!-- ===== THEME (giống redeem) ===== -->
   <style>
     :root{
       --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
@@ -25,16 +23,8 @@
         --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08);
       }
     }
-    :root[data-theme="light"]{
-      --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#fff; --text:#111827; --muted:#6b7280;
-      --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626;
-      --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08);
-    }
-    :root[data-theme="dark"]{
-      --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
-      --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444;
-      --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25);
-    }
+    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#fff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    :root[data-theme="dark"]{  --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
 
     html,body{height:100%}
     body{
@@ -49,43 +39,36 @@
     .wrap{ max-width:1100px; margin:0 auto; padding:20px 16px 40px; }
     .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 16px; }
     .title{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
-    .logo{ width:36px; height:36px; border-radius:12px; display:grid; place-items:center;
-           background: linear-gradient(135deg, var(--primary), #60a5fa); box-shadow: var(--shadow); }
+    .logo{ width:36px; height:36px; border-radius:12px; display:grid; place-items:center; background: linear-gradient(135deg, var(--primary), #60a5fa); box-shadow: var(--shadow); }
     .icon{ width:18px; height:18px; object-fit:contain; display:inline-block; }
     .muted{ color:var(--muted); font-size:14px; }
     .actions{ display:flex; gap:10px; flex-wrap:wrap; }
-    .btn{ border:none; cursor:pointer; background: var(--primary); color:white; font-weight:700;
-          padding:10px 14px; border-radius:12px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
-    .btn:hover{ background: var(--primary-strong); }
+    .btn{ border:none; cursor:pointer; background: var(--primary); color:white; font-weight:700; padding:10px 14px; border-radius:12px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
     .btn.secondary{ background: transparent; color: var(--text); border:1px solid var(--border); }
     .btn.secondary:hover{ background: var(--bg-soft); }
-
     .card{ background: var(--card); border:1px solid var(--border); border-radius:18px; box-shadow: var(--shadow); }
     .badge{ border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-size:12px; color:var(--muted); background: var(--bg-soft) }
     .status.active{color:var(--ok)} .status.expired{color:var(--err)} .status.used{color:#f59e0b}
     .big{font-size:28px;font-weight:800} .mono{font-family:ui-monospace,monospace}
-
     .qr-card{ border:1px solid var(--border); border-radius:16px; background: var(--bg-soft); box-shadow: var(--shadow); }
     .qr-note{ border-top:1px dashed var(--border); padding:10px 12px; font-size:12px; color:var(--muted); background: var(--card); }
 
-    .toast{ position:fixed; top:16px; right:16px; max-width:320px; z-index:60;
-      background:var(--card); color:var(--text); border:1px solid var(--border); border-left:4px solid var(--primary);
-      border-radius:12px; padding:12px 14px; box-shadow:var(--shadow);
-      opacity:0; transform: translateY(-6px); transition: all .25s ease; pointer-events:none; }
+    .toast{ position:fixed; top:16px; right:16px; max-width:320px; z-index:60; background:var(--card); color:var(--text); border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); opacity:0; transform: translateY(-6px); transition: all .25s ease; pointer-events:none; }
     .toast.show{ opacity:1; transform:none; pointer-events:auto; }
     .toast.success{ border-left-color:#22c55e } .toast.error{ border-left-color:#ef4444 } .toast.info{ border-left-color:var(--primary) }
+
+    /* Debug badge */
+    #dbg{position:fixed;left:10px;bottom:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font:12px ui-monospace,monospace;color:var(--muted);box-shadow:var(--shadow);display:none;max-width:90vw;z-index:100}
+    #dbg b{color:var(--text)}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- ===== Header giống redeem, KHÔNG dùng logo.png ===== -->
+    <!-- Header giống redeem, KHÔNG dùng logo.png -->
     <div class="topbar">
       <div class="title">
         <div class="logo"><img src="assets/gift.svg" class="icon" alt="gift"></div>
-        <div>
-          <div>Voucher</div>
-          <div class="muted" id="statusSub">Quét & xác thực mã</div>
-        </div>
+        <div><div>Voucher</div><div class="muted" id="statusSub">Quét & xác thực mã</div></div>
       </div>
       <div class="actions">
         <a class="btn secondary" href="library.html"><img src="assets/book.svg" class="icon" alt=""> Thư viện</a>
@@ -96,38 +79,30 @@
       </div>
     </div>
 
-    <!-- ===== Main ===== -->
     <main>
       <section class="card p-6">
         <div class="flex justify-between items-center">
           <h1 class="big">Chi tiết voucher</h1>
           <span id="statusBadge" class="badge status">Đang tải...</span>
         </div>
-
         <div class="grid md:grid-cols-2 gap-6 mt-4">
-          <!-- LEFT -->
           <div>
             <div class="flex justify-between"><span class="muted">Món quà</span><strong id="giftName">—</strong></div>
             <div class="flex justify-between"><span class="muted">Mã voucher</span><span id="voucherId" class="mono">—</span></div>
             <div class="flex justify-between"><span class="muted">Ngày cấp</span><span id="issuedAt">—</span></div>
             <div class="flex justify-between"><span class="muted">Hạn dùng</span><span id="expiresAt">—</span></div>
             <div class="flex justify-between"><span class="muted">Còn lại</span><span id="remaining">—</span></div>
-
-            <div class="mt-6 flex flex-wrap gap-3">
+            <div class="mt-6 flex gap-3">
               <button id="backBtn" class="btn secondary">Quay lại đổi quà</button>
               <button id="useBtn" class="btn">Đánh dấu đã dùng</button>
             </div>
           </div>
-
-          <!-- RIGHT: QR -->
           <div class="qr-card p-4">
             <div class="text-center">
               <div class="muted mb-2">Mã QR</div>
               <div id="qrcode" class="inline-block p-3 border rounded-lg" style="background:var(--card)"></div>
             </div>
-            <div class="qr-note mt-4">
-              Dùng app đối tác để quét & xác thực. Nhân viên có thể nhập mã thủ công nếu cần.
-            </div>
+            <div class="qr-note mt-4">Dùng app đối tác để quét & xác thực. Nhân viên có thể nhập mã thủ công nếu cần.</div>
           </div>
         </div>
       </section>
@@ -136,6 +111,8 @@
 
   <!-- Toast -->
   <div id="toast" class="toast"><strong id="toast-title"></strong><div id="toast-msg"></div></div>
+  <!-- Debug overlay -->
+  <div id="dbg"></div>
 
   <!-- Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -144,293 +121,214 @@
   <!-- QRCode.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- ===== ThemeManager v2.1 (lưu prefs.theme vào Firestore) ===== -->
+  <!-- ThemeManager v2.1 (lưu prefs.theme vào Firestore) -->
   <script>
   (function ThemeManager_v21(){
-    const LS_KEY = 'voucher-theme';
-    const root = document.documentElement;
-    let currentTheme = null;
-
-    const getSystemPref = () =>
-      (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
-
-    function applyTheme(t){
-      currentTheme = t;
-      if (t) root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
-      try { window.dispatchEvent(new CustomEvent('themechange',{ detail:{ theme:t } })); } catch {}
-    }
-    function saveLocal(t){ try{ t?localStorage.setItem(LS_KEY,t):localStorage.removeItem(LS_KEY); }catch{} }
-
-    // init theo local/system
-    (function initFirst(){
-      const ls = localStorage.getItem(LS_KEY);
-      applyTheme(ls || getSystemPref());
-    })();
-
-    // bind nút toggle
-    function bindToggle(){
-      const b = document.getElementById('themeBtn');
-      if (!b || b.__tmBound) return;
-      b.__tmBound = true;
-      b.addEventListener('click', ()=> window.ThemeManager?.toggle());
-    }
-    bindToggle(); new MutationObserver(bindToggle).observe(document.documentElement,{childList:true,subtree:true});
-
-    window.ThemeManager = {
-      getTheme(){ return currentTheme || root.getAttribute('data-theme') || getSystemPref(); },
-      async setTheme(t){
-        if (t!=='light' && t!=='dark') return;
-        applyTheme(t); saveLocal(t);
-        // lưu Firestore nếu đã đăng nhập
-        try{
-          const u = firebase.auth().currentUser;
-          if (u){
-            await firebase.firestore().collection('users').doc(u.uid).set({
-              prefs:{ theme:t, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }
-            }, { merge:true });
-          }
-        }catch(e){ console.warn('save theme fail', e); }
-      },
-      async toggle(){ const next = (this.getTheme()==='dark' ? 'light' : 'dark'); await this.setTheme(next); }
-    };
+    const root=document.documentElement; let cur=null;
+    const sys=()=> (matchMedia && matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
+    function apply(t){cur=t; t?root.setAttribute('data-theme',t):root.removeAttribute('data-theme');
+      dispatchEvent(new CustomEvent('themechange',{detail:{theme:t}}));}
+    (function init(){apply(localStorage.getItem('voucher-theme')||sys())})();
+    document.getElementById('themeBtn')?.addEventListener('click',()=>window.ThemeManager?.toggle());
+    window.ThemeManager={getTheme(){return cur||root.getAttribute('data-theme')||sys();},
+      async setTheme(t){if(t!=='light'&&t!=='dark')return;apply(t);try{localStorage.setItem('voucher-theme',t);}catch{}
+        try{const u=firebase.auth().currentUser;if(u){await firebase.firestore().collection('users').doc(u.uid).set({prefs:{theme:t,updatedAt:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true});}}catch(e){}},
+      async toggle(){await this.setTheme(this.getTheme()==='dark'?'light':'dark');}};
   })();
   </script>
 
-  <!-- Đồng bộ icon & re-render QR khi đổi theme -->
+  <!-- Sync assets on theme change -->
   <script>
-    const faviconEl = document.getElementById('favicon');
-    const themeIcon = document.getElementById('themeIcon');
+    const faviconEl=document.getElementById('favicon'); const themeIcon=document.getElementById('themeIcon');
     function applyThemeAssets(mode){
-      if (themeIcon){
-        themeIcon.src = mode==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
-        themeIcon.alt = mode==='dark' ? 'Dark' : 'Light';
-      }
-      if (faviconEl){
-        faviconEl.href = mode==='dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
-        const bust='?v='+Date.now(); faviconEl.href=faviconEl.href.split('?')[0]+bust;
-      }
-      if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
+      if(themeIcon){themeIcon.src=mode==='dark'?'assets/theme-dark.svg':'assets/theme-light.svg';}
+      if(faviconEl){faviconEl.href=mode==='dark'?'assets/favicon-dark.svg':'assets/favicon-light.svg'; faviconEl.href=faviconEl.href.split('?')[0]+'?v='+Date.now();}
+      if(window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
     }
-    (function initIconOnce(){
-      const mode = (window.ThemeManager?.getTheme && window.ThemeManager.getTheme()) || 'dark';
-      applyThemeAssets(mode);
-    })();
-    window.addEventListener('themechange', e=>{
-      const mode = e?.detail?.theme || 'dark';
-      applyThemeAssets(mode);
-    });
+    applyThemeAssets(window.ThemeManager?.getTheme?.()||'dark');
+    addEventListener('themechange',e=>applyThemeAssets(e.detail?.theme||'dark'));
   </script>
 
-  <!-- ===== App logic: nhận diện voucher chắc chắn + lưu Firestore ===== -->
+  <!-- ===== App logic: bắt ID từ search + hash + path, lưu Firestore, fallback collection ===== -->
   <script>
-    // Firebase init (idempotent)
-    const firebaseConfig = {
-      apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
-      authDomain: "loginandsignin-4932b.firebaseapp.com",
-      projectId: "loginandsignin-4932b",
-      storageBucket: "loginandsignin-4932b.appspot.com",
-      messagingSenderId: "863133586719",
-      appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
-    };
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db   = firebase.firestore();
+    // ===== Firebase init =====
+    const firebaseConfig={apiKey:"AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",authDomain:"loginandsignin-4932b.firebaseapp.com",projectId:"loginandsignin-4932b",storageBucket:"loginandsignin-4932b.appspot.com",messagingSenderId:"863133586719",appId:"1:863133586719:web:81eb32db8e08e8d89e8c2a"};
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth=firebase.auth(), db=firebase.firestore();
 
-    // UI helpers
-    const $ = (id)=> document.getElementById(id);
-    const giftNameEl = $('giftName');
-    const voucherIdEl= $('voucherId');
-    const issuedAtEl = $('issuedAt');
-    const expiresAtEl= $('expiresAt');
-    const remainingEl= $('remaining');
-    const statusBadge= $('statusBadge');
-    const backBtn    = $('backBtn');
-    const useBtn     = $('useBtn');
+    // ===== UI helpers =====
+    const $=id=>document.getElementById(id);
+    const giftNameEl=$('giftName'), voucherIdEl=$('voucherId'), issuedAtEl=$('issuedAt'),
+          expiresAtEl=$('expiresAt'), remainingEl=$('remaining'), statusBadge=$('statusBadge'),
+          backBtn=$('backBtn'), useBtn=$('useBtn'), dbg=$('dbg');
 
-    backBtn.onclick = ()=> history.length>1 ? history.back() : location.href='redeem.html';
+    backBtn.onclick=()=>history.length>1?history.back():location.href='redeem.html';
+    function setStatusBadge(st){statusBadge.className='badge status '+(st||'active');statusBadge.textContent=st||'active';}
+    function toast(t,m,tp='info',after=null){const box=$('toast');$('toast-title').textContent=t;$('toast-msg').textContent=m;box.className='toast '+tp;requestAnimationFrame(()=>box.classList.add('show'));setTimeout(()=>{box.classList.remove('show');after&&after();},2400);}
 
-    function setStatusBadge(status){
-      statusBadge.className = 'badge status ' + (status || 'active');
-      statusBadge.textContent = status || 'active';
+    // ===== ID resolver (siêu chắc) =====
+    function getParamFromSearch(names){
+      const sp=new URL(location.href).searchParams;
+      for(const k of names){const v=sp.get(k); if(v) return {id:decodeURIComponent(v.trim()), src:'search:'+k};}
+      return null;
     }
-    function showToast(title, msg, type='info', after=null){
-      const t  = $('toast'), tt = $('toast-title'), tm = $('toast-msg');
-      t.className = 'toast '+type; tt.textContent = title; tm.textContent = msg;
-      requestAnimationFrame(()=> t.classList.add('show'));
-      setTimeout(()=>{ t.classList.remove('show'); if(after) after(); }, 2600);
+    function getParamFromHash(names){
+      if(!location.hash) return null;
+      const raw=location.hash.replace(/^#\/?/,''); // hỗ trợ #?id=..., #/voucher?id=...
+      // 1) nếu hash có '?', parse như query
+      if(raw.includes('?')){
+        const qs=new URLSearchParams(raw.split('?')[1]);
+        for(const k of names){const v=qs.get(k); if(v) return {id:decodeURIComponent(v.trim()), src:'hash:'+k};}
+      }
+      // 2) nếu hash dạng id=XYZ hoặc chỉ là ID trần
+      const m=raw.match(/(?:^|&)id=([^&]+)/i); if(m) return {id:decodeURIComponent(m[1].trim()), src:'hash:id'};
+      if(raw && !raw.includes('=') && !raw.includes('/')) return {id:decodeURIComponent(raw.trim()), src:'hash:bare'};
+      return null;
+    }
+    function getIdFromPath(){
+      // Hỗ trợ các dạng: /voucher/XYZ , /voucher.html/XYZ , /v/XYZ
+      const seg=location.pathname.split('/').filter(Boolean);
+      if(!seg.length) return null;
+      const last=seg[seg.length-1], prev=seg[seg.length-2]||'';
+      if((prev==='voucher'||prev==='v'||prev==='voucher.html') && last && !last.includes('.')) return {id:decodeURIComponent(last.trim()), src:'path:last'};
+      // nếu chính tên file là voucher.html và có thêm 1 seg sau (ít gặp)
+      if(last==='voucher' || last==='v') {
+        const maybe=seg[seg.length]; if(maybe) return {id:decodeURIComponent(maybe.trim()), src:'path:next'};
+      }
+      return null;
+    }
+    function sanitizeIdLoose(id){
+      if(!id) return null;
+      // Chỉ cấm dấu '/', vì Firestore docId không được chứa '/', còn lại để nguyên (kể cả dấu, khoảng trắng)
+      id=id.replace(/\s+/g,' ').trim(); // gom khoảng trắng cho gọn
+      if(id.includes('/')) return null;
+      // cắt bớt quá dài
+      if(id.length>500) id=id.slice(0,500);
+      return id || null;
     }
 
-    // Nhận ID từ URL -> sanitize
-    function getIdFromURL(){
-      const qs = new URLSearchParams(location.search);
-      let raw = qs.get('id') || qs.get('voucher_id') || qs.get('vid') || null;
-      if (!raw) return null;
-      try { raw = decodeURIComponent(raw).trim(); } catch {}
-      return raw || null;
-    }
-    function sanitizeId(id){
-      if (!id) return null;
-      const ok = /^[A-Za-z0-9_\-]+$/.test(id);
-      return ok ? id : null;
-    }
-
-    // Đọc/ghi last_voucher_id trên Firestore
     async function getUserLastVoucherId(uid){
-      try{
-        const u = await db.collection('users').doc(uid).get();
-        return u.exists ? (u.data().last_voucher_id || null) : null;
-      }catch{ return null; }
+      try{const u=await db.collection('users').doc(uid).get(); return u.exists?(u.data().last_voucher_id||null):null;}catch{return null;}
     }
-    async function saveUserLastVoucher(uid, vId){
-      try{
-        await db.collection('users').doc(uid).set({
-          last_voucher_id: vId,
-          last_seen_voucher_at: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge:true });
-      }catch(e){ console.warn('[voucher] save last_voucher_id fail:', e); }
+    async function saveUserLastVoucher(uid,vId){
+      try{await db.collection('users').doc(uid).set({last_voucher_id:vId,last_seen_voucher_at:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});}catch(e){console.warn('[voucher] save last_voucher_id fail:',e);}
     }
 
-    // Thử cả 'vouchers' và 'voucher'
-    async function loadVoucherDocFlexible(vId){
-      const paths = ['vouchers', 'voucher'];
-      for (const col of paths){
-        const snap = await db.collection(col).doc(vId).get();
-        if (snap.exists) return { col, data: snap.data() };
+    async function findVoucherDoc(vId){
+      const cols=['vouchers','voucher']; // thử cả 2
+      for(const col of cols){
+        const snap=await db.collection(col).doc(vId).get();
+        if(snap.exists) return {col,data:snap.data()};
       }
       return null;
     }
 
-    // Bổ sung trường & đồng bộ trạng thái
-    async function ensureExpiresField(vId, col, data){
-      if (data.expiresAt) return data;
-      const validDays = Number(data.validDays || 7);
+    async function ensureExpiresField(vId,col,data){
+      if(data.expiresAt) return data;
+      const validDays=Number(data.validDays||7);
       const issuedMs = data.issuedAt?.toDate ? data.issuedAt.toDate().getTime()
-                    : (typeof data.issuedAt === 'number' ? data.issuedAt : Date.now());
-      const expMs = issuedMs + validDays*24*60*60*1000;
-      const expiresAt = firebase.firestore.Timestamp.fromDate(new Date(expMs));
-      await db.collection(col).doc(vId).set({ expiresAt }, { merge: true });
-      return { ...data, expiresAt };
+                    : (typeof data.issuedAt==='number'?data.issuedAt:Date.now());
+      const expMs=issuedMs+validDays*86400000;
+      const expiresAt=firebase.firestore.Timestamp.fromDate(new Date(expMs));
+      await db.collection(col).doc(vId).set({expiresAt},{merge:true});
+      return {...data,expiresAt};
     }
-    async function ensureStatusUpToDate(vId, col, data){
+    async function ensureStatusUpToDate(vId,col,data){
       const exp = data.expiresAt?.toDate ? data.expiresAt.toDate().getTime()
-                 : (typeof data.expiresAt === 'number' ? data.expiresAt : null);
-      if (!exp) return data;
-      if (Date.now() > exp && (data.status || 'active') === 'active'){
-        await db.collection(col).doc(vId).set({ status: 'expired' }, { merge:true });
-        return { ...data, status:'expired' };
+                 : (typeof data.expiresAt==='number'?data.expiresAt:null);
+      if(!exp) return data;
+      if(Date.now()>exp && (data.status||'active')==='active'){
+        await db.collection(col).doc(vId).set({status:'expired'},{merge:true});
+        return {...data,status:'expired'};
       }
       return data;
     }
 
-    // QR & countdown
     function renderQRCode(voucherCode){
-      const qrEl = $('qrcode'); if (!qrEl) return;
-      qrEl.innerHTML = '';
-      const cs = getComputedStyle(document.documentElement);
-      new QRCode(qrEl,{
-        text: voucherCode, width:180, height:180,
-        colorDark: cs.getPropertyValue('--text').trim() || '#000',
-        colorLight:cs.getPropertyValue('--card').trim() || '#fff',
-        correctLevel: QRCode.CorrectLevel.H
-      });
+      const el=$('qrcode'); if(!el) return; el.innerHTML='';
+      const cs=getComputedStyle(document.documentElement);
+      new QRCode(el,{text:voucherCode,width:180,height:180,
+        colorDark:cs.getPropertyValue('--text').trim()||'#000',
+        colorLight:cs.getPropertyValue('--card').trim()||'#fff',
+        correctLevel:QRCode.CorrectLevel.H});
     }
     let timer=null;
-    function startCountdown(expireMs){
+    function startCountdown(ms){
       function tick(){
-        let diff = expireMs - Date.now();
-        if (diff <= 0){ remainingEl.textContent = 'Đã hết hạn'; clearInterval(timer); timer=null; return; }
-        const d=Math.floor(diff/86400000); diff%=86400000;
-        const h=Math.floor(diff/3600000);  diff%=3600000;
-        const m=Math.floor(diff/60000);    diff%=60000;
-        const s=Math.floor(diff/1000);
-        remainingEl.textContent = `${d} ngày ${h} giờ ${m} phút ${s} giây`;
+        let d=ms-Date.now(); if(d<=0){$('remaining').textContent='Đã hết hạn';clearInterval(timer);timer=null;return;}
+        const D=Math.floor(d/86400000); d%=86400000; const H=Math.floor(d/3600000); d%=3600000;
+        const M=Math.floor(d/60000); d%=60000; const S=Math.floor(d/1000);
+        $('remaining').textContent=`${D} ngày ${H} giờ ${M} phút ${S} giây`;
       }
       tick(); timer=setInterval(tick,1000);
     }
 
-    // MAIN
+    function showDebug(info){
+      const q=new URL(location.href).searchParams; const on=q.get('debug')==='1';
+      if(!on) return;
+      dbg.style.display='block';
+      dbg.innerHTML=`<b>DEBUG</b><br>${info.replaceAll('<','&lt;')}`;
+      console.log('[voucher.debug]', info);
+    }
+
+    // ===== MAIN =====
     auth.onAuthStateChanged(async user=>{
-      if(!user){
-        showToast('Cần đăng nhập','Chuyển tới đăng nhập...','info', ()=> location.href='login.html');
-        return;
-      }
+      if(!user){ toast('Cần đăng nhập','Chuyển tới đăng nhập...','info',()=>location.href='login.html'); return; }
       try{
-        // 1) Lấy ID ưu tiên URL, sau đó Firestore (không dùng localStorage)
-        const raw = getIdFromURL();
-        const idFromURL = sanitizeId(raw);
-        let vId = idFromURL;
+        const foundFromSearch=getParamFromSearch(['id','voucher_id','vid']);
+        const foundFromHash  =getParamFromHash(['id','voucher_id','vid']);
+        const foundFromPath  =getIdFromPath();
 
-        if (!vId){
-          if (raw){
-            showToast('ID không hợp lệ','ID chỉ gồm A-Z, a-z, 0-9, _ hoặc -','error');
-            console.warn('[voucher] Raw ID from URL chứa ký tự lạ:', raw);
-            return;
-          }
-          vId = await getUserLastVoucherId(user.uid);
+        let picked = foundFromSearch || foundFromHash || foundFromPath || null;
+        showDebug(`href=${location.href}\nsearch=${JSON.stringify(foundFromSearch)}\nhash=${JSON.stringify(foundFromHash)}\npath=${JSON.stringify(foundFromPath)}`);
+
+        let raw = picked?.id || null;
+        if(!raw){ // fallback Firestore
+          const fsId = await getUserLastVoucherId(user.uid);
+          if(!fsId){ voucherIdEl.textContent='—'; setStatusBadge('error'); toast('Thiếu ID','Không thấy ?id=... / #id=... / path / Firestore.', 'error'); return; }
+          raw=fsId; picked={id:raw, src:'firestore:last_voucher_id'};
         }
 
-        if (!vId){
-          voucherIdEl.textContent = '—';
-          setStatusBadge('error');
-          showToast('Thiếu ID','Không thấy ?id=... và users.last_voucher_id trống.','error');
-          console.warn('[voucher] Missing id: URL & Firestore both empty');
-          return;
-        }
+        const vId = sanitizeIdLoose(raw);
+        if(!vId){ toast('ID không hợp lệ','ID không được chứa dấu “/”.', 'error'); showDebug(`raw="${raw}" -> bị loại`); return; }
 
-        // 2) Lưu lại users/{uid}.last_voucher_id để đồng bộ thiết bị
+        // Lưu vào Firestore để đồng bộ
         await saveUserLastVoucher(user.uid, vId);
 
-        // 3) Tải doc (thử 'vouchers' rồi 'voucher')
-        const pack = await loadVoucherDocFlexible(vId);
-        if (!pack){
-          voucherIdEl.textContent = vId;
-          setStatusBadge('error');
-          showToast('Không tìm thấy','Không có doc tại collections "vouchers" hoặc "voucher".','error');
-          console.warn('[voucher] Not found in both collections. ID:', vId);
-          return;
-        }
-        let { col, data } = pack;
+        // Tải doc (thử 'vouchers' rồi 'voucher')
+        const pack = await findVoucherDoc(vId);
+        if(!pack){ voucherIdEl.textContent=vId; setStatusBadge('error'); toast('Không tìm thấy','Không có doc trong collections "vouchers" hoặc "voucher".','error'); showDebug(`ID="${vId}" not found`); return; }
 
-        // 4) Bổ sung expiresAt + cập nhật status nếu hết hạn
-        data = await ensureExpiresField(vId, col, data);
-        data = await ensureStatusUpToDate(vId, col, data);
+        let {col,data}=pack;
+        data = await ensureExpiresField(vId,col,data);
+        data = await ensureStatusUpToDate(vId,col,data);
 
-        // 5) Render
-        window.__lastVoucherId = vId;
-        voucherIdEl.textContent = vId;
-        giftNameEl.textContent  = data.giftName || '—';
-
-        const issued  = data.issuedAt?.toDate ? data.issuedAt.toDate()
-                       : (typeof data.issuedAt === 'number' ? new Date(data.issuedAt) : null);
-        const expires = data.expiresAt?.toDate ? data.expiresAt.toDate()
-                       : (typeof data.expiresAt === 'number' ? new Date(data.expiresAt) : null);
-
-        issuedAtEl.textContent  = issued  ? issued.toLocaleString('vi-VN') : '—';
-        expiresAtEl.textContent = expires ? expires.toLocaleString('vi-VN') : '—';
-        setStatusBadge(data.status || 'active');
-
+        // Render
+        window.__lastVoucherId=vId;
+        voucherIdEl.textContent=vId;
+        giftNameEl.textContent=data.giftName||'—';
+        const issued  = data.issuedAt?.toDate ? data.issuedAt.toDate() : (typeof data.issuedAt==='number'?new Date(data.issuedAt):null);
+        const expires = data.expiresAt?.toDate ? data.expiresAt.toDate() : (typeof data.expiresAt==='number'?new Date(data.expiresAt):null);
+        issuedAtEl.textContent= issued ? issued.toLocaleString('vi-VN') : '—';
+        expiresAtEl.textContent=expires ? expires.toLocaleString('vi-VN') : '—';
+        setStatusBadge(data.status||'active');
         renderQRCode(vId);
-        if (expires) startCountdown(expires.getTime()); else remainingEl.textContent = '—';
+        if(expires) startCountdown(expires.getTime()); else remainingEl.textContent='—';
 
-        showToast('OK','Voucher đã sẵn sàng.','success');
+        toast('OK',`Đã tải voucher (${picked.src}).`,'success');
 
-        // 6) Đánh dấu đã dùng
-        useBtn.onclick = async ()=>{
+        // Đánh dấu đã dùng
+        useBtn.onclick=async()=>{
           try{
-            await db.collection(col).doc(vId).set({ status:'used' }, { merge:true });
-            setStatusBadge('used');
-            showToast('Thành công','Đã đánh dấu voucher là ĐÃ DÙNG.','success');
-            await db.collection('users').doc(user.uid).set({
-              last_used_voucher_id: vId,
-              last_used_at: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge:true });
-          }catch(e){
-            showToast('Lỗi','Không thể cập nhật trạng thái: '+e.message,'error');
-          }
+            await db.collection(col).doc(vId).set({status:'used'},{merge:true});
+            setStatusBadge('used'); toast('Thành công','Đã đánh dấu voucher là ĐÃ DÙNG.','success');
+            await db.collection('users').doc(user.uid).set({last_used_voucher_id:vId,last_used_at:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+          }catch(e){ toast('Lỗi','Không thể cập nhật trạng thái: '+e.message,'error'); }
         };
+
       }catch(e){
         console.error(e);
-        showToast('Lỗi tải', e.message || 'Không thể tải voucher.','error');
+        toast('Lỗi tải', e.message||'Không thể tải voucher','error');
       }
     });
   </script>
