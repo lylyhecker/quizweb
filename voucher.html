@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Voucher</title>
 
-  <!-- Favicons theo theme -->
-  <link id="faviconLight" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg" media="(prefers-color-scheme: light)">
-  <link id="faviconDark"  rel="icon" type="image/svg+xml" href="assets/favicon-dark.svg"  media="(prefers-color-scheme: dark)">
-  <link rel="alternate icon" href="assets/favicon-32.png" sizes="32x32">
+  <!-- Favicon SVG (đổi bằng JS cho đồng bộ như redeem) -->
+  <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg"/>
 
+  <!-- Tailwind cho layout/spacing -->
   <script src="https://cdn.tailwindcss.com"></script>
+
   <style>
     :root{
       --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
@@ -18,10 +18,14 @@
       --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25);
     }
     @media (prefers-color-scheme: light){
-      :root{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+      :root{
+        --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280;
+        --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626;
+        --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08);
+      }
     }
-    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
-    :root[data-theme="dark"]{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
+    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#fff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    :root[data-theme="dark"]{  --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
 
     html,body{height:100%}
     body{
@@ -36,7 +40,12 @@
     footer{ border-top:1px solid var(--border); border-bottom:none }
     .card{ background: var(--card); border:1px solid var(--border); border-radius:18px; box-shadow: var(--shadow); }
     .icon{ width:18px; height:18px; object-fit:contain }
-    .btn{ display:inline-flex; align-items:center; gap:8px; background:transparent; color:var(--text); border:1px solid var(--border); border-radius:12px; padding:8px 12px; cursor:pointer; }
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      background: transparent; color: var(--text);
+      border:1px solid var(--border); border-radius:12px;
+      padding:8px 12px; cursor:pointer;
+    }
     .btn:hover{ background: var(--bg-soft) }
     .btn.primary{ border:none; background: var(--primary); color:#fff; box-shadow: 0 6px 18px rgba(37,99,235,.25); }
     .btn.primary:hover{ background: var(--primary-strong) }
@@ -44,11 +53,16 @@
     .status.active{color:var(--ok)} .status.expired{color:var(--err)} .status.used{color:#f59e0b}
     .muted{color:var(--muted)} .big{font-size:28px;font-weight:800} .mono{font-family:ui-monospace,monospace}
 
+    /* QR bên phải + ô bo góc */
     .qr-card{ border:1px solid var(--border); border-radius:16px; background: var(--bg-soft); box-shadow: var(--shadow); }
     .qr-note{ border-top:1px dashed var(--border); border-radius:0 0 16px 16px; padding:10px 12px; font-size:12px; color:var(--muted); background: var(--card); }
 
-    /* Toast: FIX chặn click khi ẩn */
-    .toast{ position:fixed; top:16px; right:16px; max-width:320px; z-index:60; background:var(--card); color:var(--text); border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); opacity:0; transform: translateY(-6px); transition: all .25s ease; pointer-events:none; }
+    /* Toast – không chặn click khi ẩn */
+    .toast{ position:fixed; top:16px; right:16px; max-width:320px; z-index:60;
+      background:var(--card); color:var(--text); border:1px solid var(--border); border-left:4px solid var(--primary);
+      border-radius:12px; padding:12px 14px; box-shadow:var(--shadow);
+      opacity:0; transform: translateY(-6px); transition: all .25s ease; pointer-events:none;
+    }
     .toast.show{ opacity:1; transform:none; pointer-events:auto; }
     .toast.success{ border-left-color:#22c55e } .toast.error{ border-left-color:#ef4444 } .toast.info{ border-left-color:var(--primary) }
   </style>
@@ -64,7 +78,7 @@
       <nav class="flex items-center gap-2">
         <a class="btn" href="library.html"><img src="assets/book.svg" class="icon" alt="">Thư viện</a>
         <a class="btn" href="redeem.html"><img src="assets/gift.svg" class="icon" alt="">Đổi quà</a>
-        <button id="themeBtn" class="btn relative z-50" title="Đổi giao diện">
+        <button id="themeBtn" class="btn" title="Đổi giao diện">
           <img id="themeIcon" class="icon" alt="theme">
         </button>
       </nav>
@@ -124,71 +138,68 @@
   <!-- QRCode.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- Theme (đồng bộ như redeem) -->
+  <!-- Theme Manager (đầy đủ như redeem, có lưu LS + đổi favicon/icon + phát event) -->
   <script>
     (function(){
-      const root = document.documentElement;
-      const LS_KEY = 'voucher-theme';
-      const btn  = document.getElementById('themeBtn');
-      const icon = document.getElementById('themeIcon');
-      const favLight  = document.getElementById('faviconLight');
-      const favDark   = document.getElementById('faviconDark');
+      const LS_KEY='voucher-theme', root=document.documentElement;
+      let currentTheme=null;
 
-      const sysLight = ()=> window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-      function getTheme(){
-        const attr = root.getAttribute('data-theme');
-        if (attr==='light' || attr==='dark') return attr;
-        const saved = localStorage.getItem(LS_KEY);
-        return saved || (sysLight() ? 'light' : 'dark');
-      }
-      function applyAssets(t){
-        if (icon){
-          icon.src = t==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
-          icon.alt = t==='dark' ? 'Dark' : 'Light';
+      const getSystemPref = () =>
+        (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+
+      function applyTheme(t){ currentTheme=t; root.setAttribute('data-theme', t); }
+      function saveToLocal(t){ localStorage.setItem(LS_KEY, t); }
+      function dispatchChange(t){ try{ window.dispatchEvent(new CustomEvent('themechange',{detail:{theme:t}})); }catch{} }
+
+      // asset theo theme (icon nút + favicon + QR)
+      function applyAssets(mode){
+        const icon = document.getElementById('themeIcon');
+        if(icon){
+          icon.src = mode==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
+          icon.alt = mode==='dark' ? 'Dark' : 'Light';
         }
-        if (favLight && favDark){
-          favLight.media = (t==='light') ? 'all' : '(prefers-color-scheme: light)';
-          favDark.media  = (t==='dark')  ? 'all' : '(prefers-color-scheme: dark)';
+        const fav = document.getElementById('favicon');
+        if (fav){
+          fav.href = mode==='dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
+          // bust cache để Chrome refresh ngay
+          fav.href = fav.href.split('?')[0] + '?v=' + Date.now();
         }
-        // đổi màu QR
         if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
       }
-      function setTheme(t){
-        if (t!=='light' && t!=='dark') return;
-        root.setAttribute('data-theme', t);
-        localStorage.setItem(LS_KEY, t);
-        applyAssets(t);
-      }
 
-      // init
-      setTheme(getTheme());
+      // khởi tạo
+      (function init(){
+        const ls = localStorage.getItem(LS_KEY);
+        const first = ls || getSystemPref();
+        applyTheme(first);
+        applyAssets(first);
+      })();
 
-      // bind click (đảm bảo luôn bấm được)
-      if (btn && !btn.__bound){
-        btn.__bound = true;
-        btn.addEventListener('click', ()=>{
-          const next = getTheme()==='dark' ? 'light' : 'dark';
-          setTheme(next);
-          showToast('Đã đổi giao diện', `Chế độ hiện tại: ${next==='dark'?'Tối':'Sáng'}`, 'info');
-        });
-      }
+      // API giống redeem
+      window.ThemeManager = {
+        getTheme(){ return currentTheme || root.getAttribute('data-theme') || getSystemPref(); },
+        setTheme(t){ if(t!=='light' && t!=='dark') return;
+          applyTheme(t); saveToLocal(t); applyAssets(t); dispatchChange(t);
+        },
+        toggle(){ const cur=this.getTheme(); this.setTheme(cur==='dark'?'light':'dark'); }
+      };
 
-      // phím tắt T để đổi theme
-      document.addEventListener('keydown', (e)=>{
-        if (e.key.toLowerCase() === 't' && !e.metaKey && !e.ctrlKey && !e.altKey){
-          const next = getTheme()==='dark' ? 'light' : 'dark';
-          setTheme(next);
-          showToast('Đã đổi giao diện', `Chế độ hiện tại: ${next==='dark'?'Tối':'Sáng'}`, 'info');
-        }
+      // bind nút
+      document.getElementById('themeBtn')?.addEventListener('click', ()=> {
+        ThemeManager.toggle();
+        const mode = ThemeManager.getTheme();
+        showToast('Đã đổi giao diện', `Chế độ hiện tại: ${mode==='dark'?'Tối':'Sáng'}`, 'info');
       });
 
-      // auto theo system khi chưa chọn tay
+      // theo dõi system khi chưa chọn tay
       if (window.matchMedia){
-        try{
+        try {
           window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
-            if (!localStorage.getItem(LS_KEY)) setTheme(sysLight() ? 'light' : 'dark');
+            if (!localStorage.getItem(LS_KEY)) {
+              ThemeManager.setTheme(getSystemPref());
+            }
           });
-        }catch{}
+        } catch(_) {}
       }
     })();
   </script>
@@ -202,12 +213,13 @@
       t.className = 'toast '+type;
       tt.textContent = title; tm.textContent = msg;
       requestAnimationFrame(()=> t.classList.add('show'));
-      setTimeout(()=>{ t.classList.remove('show'); if(after) after(); }, 2200);
+      setTimeout(()=>{ t.classList.remove('show'); if(after) after(); }, 2300);
     }
   </script>
 
   <!-- App logic -->
   <script>
+    // Firebase init
     const firebaseConfig = {
       apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
       authDomain: "loginandsignin-4932b.firebaseapp.com",
@@ -235,6 +247,7 @@
 
     backBtn.onclick = ()=> history.length>1 ? history.back() : location.href='redeem.html';
 
+    // Đếm ngược
     let timer=null;
     function startCountdown(expireMs){
       function tick(){
