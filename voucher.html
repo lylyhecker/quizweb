@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Voucher</title>
 
-  <!-- Favicon SVG (đổi bằng JS cho đồng bộ như redeem) -->
+  <!-- Favicon (ThemeManager v2.1 sẽ đổi giữa light/dark) -->
   <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg"/>
 
-  <!-- Tailwind cho layout/spacing -->
+  <!-- Tailwind (layout/spacing) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
@@ -24,7 +24,7 @@
         --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08);
       }
     }
-    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#fff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
     :root[data-theme="dark"]{  --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
 
     html,body{height:100%}
@@ -138,70 +138,172 @@
   <!-- QRCode.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- Theme Manager (đầy đủ như redeem, có lưu LS + đổi favicon/icon + phát event) -->
+  <!-- ============ ThemeManager v2.1 (y như redeem) ============ -->
   <script>
-    (function(){
-      const LS_KEY='voucher-theme', root=document.documentElement;
-      let currentTheme=null;
+  (function ThemeManager_v21(){
+    var ThemeManager;
+    const LS_KEY = 'voucher-theme';
+    const root = document.documentElement;
 
-      const getSystemPref = () =>
-        (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    let currentTheme = null;
+    let isSaving = false, saveTimer = null;
+    const SAVE_DELAY = 250;
 
-      function applyTheme(t){ currentTheme=t; root.setAttribute('data-theme', t); }
-      function saveToLocal(t){ localStorage.setItem(LS_KEY, t); }
-      function dispatchChange(t){ try{ window.dispatchEvent(new CustomEvent('themechange',{detail:{theme:t}})); }catch{} }
+    const getSystemPref = () =>
+      (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
 
-      // asset theo theme (icon nút + favicon + QR)
-      function applyAssets(mode){
-        const icon = document.getElementById('themeIcon');
-        if(icon){
-          icon.src = mode==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
-          icon.alt = mode==='dark' ? 'Dark' : 'Light';
-        }
-        const fav = document.getElementById('favicon');
-        if (fav){
-          fav.href = mode==='dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
-          // bust cache để Chrome refresh ngay
-          fav.href = fav.href.split('?')[0] + '?v=' + Date.now();
-        }
-        if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
-      }
+    const hasFS = () => (typeof firebase !== 'undefined' && typeof firebase.firestore === 'function');
 
-      // khởi tạo
-      (function init(){
-        const ls = localStorage.getItem(LS_KEY);
-        const first = ls || getSystemPref();
-        applyTheme(first);
-        applyAssets(first);
-      })();
+    function dispatchChange(theme){
+      try { window.dispatchEvent(new CustomEvent('themechange',{ detail:{ theme } })); } catch {}
+    }
+    function applyTheme(t){
+      currentTheme = t;
+      if (t) root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
+      dispatchChange(t);
+    }
+    function saveToLocal(t){ t ? localStorage.setItem(LS_KEY,t) : localStorage.removeItem(LS_KEY); }
 
-      // API giống redeem
-      window.ThemeManager = {
-        getTheme(){ return currentTheme || root.getAttribute('data-theme') || getSystemPref(); },
-        setTheme(t){ if(t!=='light' && t!=='dark') return;
-          applyTheme(t); saveToLocal(t); applyAssets(t); dispatchChange(t);
-        },
-        toggle(){ const cur=this.getTheme(); this.setTheme(cur==='dark'?'light':'dark'); }
-      };
+    function waitForFb(cb){
+      try { if (firebase?.apps?.length) { cb(); return; } } catch {}
+      const t = setInterval(()=>{ try{ if(firebase?.apps?.length){ clearInterval(t); cb(); } }catch{} }, 50);
+      setTimeout(()=>clearInterval(t), 10000);
+    }
+    async function _saveToFS(t){
+      if (!hasFS()) return;
+      const u = firebase.auth().currentUser;
+      if (!u) return;
+      await firebase.firestore().collection('users').doc(u.uid)
+        .set({ prefs:{ theme:t, updatedAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge:true });
+    }
+    function saveFS(t){
+      if (isSaving) return; clearTimeout(saveTimer);
+      saveTimer = setTimeout(async()=>{
+        try{ isSaving = true; await _saveToFS(t); }catch(e){ console.warn('[ThemeManager] save fail:', e); }finally{ isSaving=false; }
+      }, SAVE_DELAY);
+    }
 
-      // bind nút
-      document.getElementById('themeBtn')?.addEventListener('click', ()=> {
-        ThemeManager.toggle();
-        const mode = ThemeManager.getTheme();
-        showToast('Đã đổi giao diện', `Chế độ hiện tại: ${mode==='dark'?'Tối':'Sáng'}`, 'info');
-      });
-
-      // theo dõi system khi chưa chọn tay
-      if (window.matchMedia){
-        try {
-          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
-            if (!localStorage.getItem(LS_KEY)) {
-              ThemeManager.setTheme(getSystemPref());
-            }
-          });
-        } catch(_) {}
-      }
+    // Init with LS or system
+    (function initFirst(){
+      const ls = localStorage.getItem(LS_KEY);
+      applyTheme(ls || getSystemPref());
     })();
+
+    // follow system if not logged in & not forced
+    let mql = null;
+    function attachSys(){
+      if (!window.matchMedia) return;
+      mql = window.matchMedia('(prefers-color-scheme: light)');
+      const onC = ()=> {
+        const u = (firebase?.auth?.().currentUser);
+        if (u) return; // when logged in we respect user choice synced
+        const sys = getSystemPref();
+        applyTheme(sys); saveToLocal(sys);
+      };
+      try { mql.addEventListener ? mql.addEventListener('change', onC) : mql.addListener(onC); } catch {}
+    }
+    function detachSys(){
+      if (!mql) return;
+      try { mql.removeEventListener ? mql.removeEventListener('change', ()=>{}) : mql.removeListener(()=>{});} catch {}
+      mql = null;
+    }
+    attachSys();
+
+    // bind toggle button (auto inject if missing)
+    function bindToggle(){
+      const b = document.getElementById('themeBtn');
+      if (!b || b.__tmBound) return;
+      b.__tmBound = true;
+      b.addEventListener('click', ()=> window.ThemeManager?.toggle());
+    }
+    bindToggle();
+    const mo = new MutationObserver(()=>bindToggle());
+    mo.observe(document.documentElement, { childList:true, subtree:true });
+
+    if (!document.getElementById('themeBtn')){
+      const auto = document.createElement('button');
+      auto.id = 'themeBtn'; auto.title='Đổi giao diện';
+      auto.className='btn';
+      auto.innerHTML = '<img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">';
+      auto.style.cssText = 'position:fixed;right:12px;bottom:12px;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:12px;padding:8px 12px;z-index:9999;box-shadow:0 6px 18px rgba(0,0,0,.15);';
+      document.body.appendChild(auto);
+      bindToggle();
+    }
+
+    // watch auth to sync FS
+    waitForFb(()=>{
+      try{
+        firebase.auth().onAuthStateChanged(async u=>{
+          if (!u){
+            attachSys();
+            const ls = localStorage.getItem(LS_KEY);
+            applyTheme(ls || getSystemPref());
+            return;
+          }
+          detachSys();
+          const now = document.documentElement.getAttribute('data-theme') || getSystemPref();
+          applyTheme(now);
+          saveToLocal(now);
+          saveFS(now);
+        });
+      }catch(e){ console.warn('[ThemeManager] auth watcher error:', e); }
+    });
+
+    // cross-tab sync
+    window.addEventListener('storage', e=>{
+      if (e.key !== LS_KEY) return;
+      const next = e.newValue || getSystemPref();
+      if (next !== currentTheme) applyTheme(next);
+    });
+
+    // Public API (y như redeem)
+    ThemeManager = {
+      getTheme(){ return currentTheme || document.documentElement.getAttribute('data-theme') || getSystemPref(); },
+      async setTheme(t){
+        if (t!=='light' && t!=='dark') return;
+        applyTheme(t); saveToLocal(t);
+        if (hasFS() && firebase.auth().currentUser) saveFS(t);
+      },
+      async toggle(){
+        const cur=this.getTheme(); const next=(cur==='dark'?'light':'dark');
+        await this.setTheme(next);
+      }
+    };
+    try{ window.ThemeManager = ThemeManager; }catch{}
+  })();
+  </script>
+
+  <!-- Đồng bộ icon nút + favicon + QR theo themechange -->
+  <script>
+    const faviconEl = document.getElementById('favicon');
+    const themeIcon = document.getElementById('themeIcon');
+
+    function applyThemeAssets(mode){
+      if (themeIcon){
+        themeIcon.src = mode==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
+        themeIcon.alt = mode==='dark' ? 'Dark' : 'Light';
+      }
+      if (faviconEl){
+        faviconEl.href = mode==='dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
+        // ép Chrome refresh favicon
+        const bust = '?v=' + Date.now();
+        faviconEl.href = faviconEl.href.split('?')[0] + bust;
+      }
+      // đổi màu QR
+      if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
+    }
+
+    // lần đầu
+    (function initIconOnce(){
+      const mode = (window.ThemeManager?.getTheme && window.ThemeManager.getTheme()) || 'dark';
+      applyThemeAssets(mode);
+    })();
+
+    // lắng nghe themechange (từ ThemeManager v2.1)
+    window.addEventListener('themechange', (e)=>{
+      const mode = e?.detail?.theme || 'dark';
+      applyThemeAssets(mode);
+    });
   </script>
 
   <!-- Toast helper -->
@@ -217,7 +319,7 @@
     }
   </script>
 
-  <!-- App logic -->
+  <!-- =================== App logic =================== -->
   <script>
     // Firebase init
     const firebaseConfig = {
@@ -263,8 +365,9 @@
     }
 
     function setStatusBadge(status){
-      statusBadge.className='badge status '+status;
-      statusBadge.textContent=status;
+      statusBadge.classList.remove('active','expired','used');
+      statusBadge.textContent = status;
+      statusBadge.classList.add(status);
     }
 
     async function loadVoucherDoc(uid){
@@ -280,6 +383,29 @@
       return { id:vid, data:doc.data() };
     }
 
+    // Bổ sung expiresAt nếu DB cũ chưa có (issuedAt + validDays)
+    async function ensureExpiresField(vId, data){
+      if (data.expiresAt) return data;
+      const validDays = Number(data.validDays || 7);
+      const issued = data.issuedAt && data.issuedAt.toDate ? data.issuedAt.toDate().getTime() : Date.now();
+      const expMs = issued + validDays*24*60*60*1000;
+      const expiresAt = firebase.firestore.Timestamp.fromDate(new Date(expMs));
+      await db.collection('vouchers').doc(vId).set({ expiresAt }, { merge: true });
+      return { ...data, expiresAt };
+    }
+
+    // Nếu quá hạn mà status vẫn active -> expired
+    async function ensureStatusUpToDate(vId, data){
+      const exp = data.expiresAt && data.expiresAt.toDate ? data.expiresAt.toDate().getTime() : null;
+      if (!exp) return data;
+      if (Date.now() > exp && data.status === 'active'){
+        await db.collection('vouchers').doc(vId).set({ status: 'expired' }, { merge: true });
+        return { ...data, status: 'expired' };
+      }
+      return data;
+    }
+
+    // QR code
     function renderQRCode(voucherCode){
       const qrEl = document.getElementById('qrcode');
       if (!qrEl) return;
@@ -293,6 +419,7 @@
       });
     }
 
+    // Đánh dấu đã dùng
     useBtn.onclick = async ()=>{
       const id = idQ || voucherIdEl.textContent;
       if(!id) return;
@@ -305,6 +432,7 @@
       }
     };
 
+    // Load voucher
     auth.onAuthStateChanged(async user=>{
       if(!user){ showToast('Cần đăng nhập','Chuyển tới đăng nhập...','info',()=>location.href='login.html'); return; }
       try{
@@ -312,10 +440,14 @@
         if(!res){ showToast('Không tìm thấy','Voucher không tồn tại hoặc đã xoá.','error'); return; }
 
         const { id, data } = res;
-        const giftName = data.giftName || '—';
-        const issued   = data.issuedAt?.toDate ? data.issuedAt.toDate() : null;
-        const expires  = data.expiresAt?.toDate ? data.expiresAt.toDate() : null;
-        const status   = data.status || 'active';
+
+        const d1 = await ensureExpiresField(id, data);
+        const d2 = await ensureStatusUpToDate(id, d1);
+
+        const giftName = d2.giftName || '—';
+        const issued   = d2.issuedAt?.toDate ? d2.issuedAt.toDate() : null;
+        const expires  = d2.expiresAt?.toDate ? d2.expiresAt.toDate() : null;
+        const status   = d2.status || 'active';
 
         giftNameEl.textContent = giftName;
         voucherIdEl.textContent= id;
