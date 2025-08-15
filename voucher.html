@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Voucher</title>
 
-  <!-- Favicon (ThemeManager v2.1 sẽ đổi giữa light/dark) -->
+  <!-- Favicon (được ThemeManager v2.1 đồng bộ theo theme) -->
   <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg"/>
 
-  <!-- Tailwind (layout/spacing) -->
+  <!-- Tailwind cho layout nhanh (giữ như voucher cũ) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- ========== THEME & CSS (copy từ redeem) ========== -->
   <style>
     :root{
       --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
@@ -24,10 +25,11 @@
         --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08);
       }
     }
-    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#fff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
     :root[data-theme="dark"]{  --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
 
     html,body{height:100%}
+    *{box-sizing:border-box}
     body{
       margin:0; color:var(--text);
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, Arial;
@@ -36,28 +38,32 @@
         radial-gradient(900px 500px at 110% 10%, rgba(125,211,252,.16), transparent 60%),
         var(--bg);
     }
-    header,footer{ background: var(--card); border-bottom:1px solid var(--border) }
-    footer{ border-top:1px solid var(--border); border-bottom:none }
+
+    /* ===== Topbar (giống redeem) ===== */
+    .wrap{ max-width:1100px; margin:0 auto; padding:20px 16px 40px; }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 16px; }
+    .title{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
+    .logo{ width:36px; height:36px; border-radius:12px; display:grid; place-items:center; background: linear-gradient(135deg, var(--primary), #60a5fa); box-shadow: var(--shadow); }
+    .icon{ width:18px; height:18px; object-fit:contain; display:inline-block; }
+    .muted{ color:var(--muted); font-size:14px; }
+    .actions{ display:flex; gap:10px; flex-wrap:wrap; }
+    .btn{ appearance:none; border:none; cursor:pointer; background: var(--primary); color:white; font-weight:700; padding:10px 14px; border-radius:12px; transition: transform .12s ease, background .2s ease; box-shadow: 0 6px 18px rgba(37,99,235,.25); text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+    .btn:hover{ transform: translateY(-1px); background: var(--primary-strong); }
+    .btn.secondary{ background: transparent; color: var(--text); border:1px solid var(--border); box-shadow:none; }
+    .btn.secondary:hover{ background: var(--bg-soft); }
+    .theme-toggle{ border:1px solid var(--border); background: var(--card); color:var(--text); border-radius: 12px; padding:8px 12px; cursor:pointer; }
+
+    /* ===== Card & badge ===== */
     .card{ background: var(--card); border:1px solid var(--border); border-radius:18px; box-shadow: var(--shadow); }
-    .icon{ width:18px; height:18px; object-fit:contain }
-    .btn{
-      display:inline-flex; align-items:center; gap:8px;
-      background: transparent; color: var(--text);
-      border:1px solid var(--border); border-radius:12px;
-      padding:8px 12px; cursor:pointer;
-    }
-    .btn:hover{ background: var(--bg-soft) }
-    .btn.primary{ border:none; background: var(--primary); color:#fff; box-shadow: 0 6px 18px rgba(37,99,235,.25); }
-    .btn.primary:hover{ background: var(--primary-strong) }
     .badge{ border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-size:12px; color:var(--muted); background: var(--bg-soft) }
     .status.active{color:var(--ok)} .status.expired{color:var(--err)} .status.used{color:#f59e0b}
-    .muted{color:var(--muted)} .big{font-size:28px;font-weight:800} .mono{font-family:ui-monospace,monospace}
+    .big{font-size:28px;font-weight:800} .mono{font-family:ui-monospace,monospace}
 
-    /* QR bên phải + ô bo góc */
+    /* ===== QR bên phải ===== */
     .qr-card{ border:1px solid var(--border); border-radius:16px; background: var(--bg-soft); box-shadow: var(--shadow); }
     .qr-note{ border-top:1px dashed var(--border); border-radius:0 0 16px 16px; padding:10px 12px; font-size:12px; color:var(--muted); background: var(--card); }
 
-    /* Toast – không chặn click khi ẩn */
+    /* ===== Toast ===== */
     .toast{ position:fixed; top:16px; right:16px; max-width:320px; z-index:60;
       background:var(--card); color:var(--text); border:1px solid var(--border); border-left:4px solid var(--primary);
       border-radius:12px; padding:12px 14px; box-shadow:var(--shadow);
@@ -68,65 +74,68 @@
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <header class="shadow">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <img src="assets/logo.png" class="w-9 h-9 rounded-lg object-cover" alt="logo">
-        <strong>Voucher</strong>
+  <div class="wrap">
+    <!-- ===== Header dùng đúng layout của redeem, KHÔNG còn logo.png ===== -->
+    <div class="topbar">
+      <div class="title">
+        <div class="logo">
+          <img src="assets/gift.svg" class="icon" alt="gift">
+        </div>
+        <div>
+          <div>Voucher</div>
+          <div class="muted" id="statusSub">Quét & xác thực mã</div>
+        </div>
       </div>
-      <nav class="flex items-center gap-2">
-        <a class="btn" href="library.html"><img src="assets/book.svg" class="icon" alt="">Thư viện</a>
-        <a class="btn" href="redeem.html"><img src="assets/gift.svg" class="icon" alt="">Đổi quà</a>
-        <button id="themeBtn" class="btn" title="Đổi giao diện">
+      <div class="actions">
+        <a class="btn secondary" href="library.html">
+          <img src="assets/book.svg" class="icon" alt="library"> Thư viện
+        </a>
+        <a class="btn secondary" href="redeem.html">
+          <img src="assets/gift.svg" class="icon" alt="redeem"> Đổi quà
+        </a>
+        <button id="themeBtn" class="theme-toggle" title="Đổi giao diện">
           <img id="themeIcon" class="icon" alt="theme">
         </button>
-      </nav>
-    </div>
-  </header>
-
-  <!-- Main -->
-  <main class="max-w-6xl mx-auto px-4 py-6">
-    <section class="card p-6">
-      <div class="flex justify-between items-center">
-        <h1 class="big">Chi tiết voucher</h1>
-        <span id="statusBadge" class="badge status">Đang tải...</span>
       </div>
+    </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-        <!-- LEFT: Thông tin -->
-        <div>
-          <div class="flex justify-between"><span class="muted">Món quà</span><strong id="giftName">—</strong></div>
-          <div class="flex justify-between"><span class="muted">Mã voucher</span><span id="voucherId" class="mono">—</span></div>
-          <div class="flex justify-between"><span class="muted">Ngày cấp</span><span id="issuedAt">—</span></div>
-          <div class="flex justify-between"><span class="muted">Hạn dùng</span><span id="expiresAt">—</span></div>
-          <div class="flex justify-between"><span class="muted">Còn lại</span><span id="remaining">—</span></div>
-
-          <div class="mt-6 flex flex-wrap gap-3">
-            <button id="backBtn" class="btn">Quay lại đổi quà</button>
-            <button id="useBtn" class="btn primary">Đánh dấu đã dùng</button>
-          </div>
+    <!-- ===== Main ===== -->
+    <main class="px-0 py-2">
+      <section class="card p-6">
+        <div class="flex justify-between items-center">
+          <h1 class="big">Chi tiết voucher</h1>
+          <span id="statusBadge" class="badge status">Đang tải...</span>
         </div>
 
-        <!-- RIGHT: QR + ô bo góc -->
-        <div class="qr-card p-4">
-          <div class="text-center">
-            <div class="muted mb-2">Mã QR</div>
-            <div id="qrcode" class="inline-block p-3 border rounded-lg" style="background:var(--card); border-color:var(--border)"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+          <!-- LEFT: Thông tin -->
+          <div>
+            <div class="flex justify-between"><span class="muted">Món quà</span><strong id="giftName">—</strong></div>
+            <div class="flex justify-between"><span class="muted">Mã voucher</span><span id="voucherId" class="mono">—</span></div>
+            <div class="flex justify-between"><span class="muted">Ngày cấp</span><span id="issuedAt">—</span></div>
+            <div class="flex justify-between"><span class="muted">Hạn dùng</span><span id="expiresAt">—</span></div>
+            <div class="flex justify-between"><span class="muted">Còn lại</span><span id="remaining">—</span></div>
+
+            <div class="mt-6 flex flex-wrap gap-3">
+              <button id="backBtn" class="btn secondary">Quay lại đổi quà</button>
+              <button id="useBtn" class="btn">Đánh dấu đã dùng</button>
+            </div>
           </div>
-          <div class="qr-note mt-4">
-            Dùng app đối tác để quét & xác thực. Nhân viên có thể nhập mã thủ công nếu cần.
+
+          <!-- RIGHT: QR -->
+          <div class="qr-card p-4">
+            <div class="text-center">
+              <div class="muted mb-2">Mã QR</div>
+              <div id="qrcode" class="inline-block p-3 border rounded-lg" style="background:var(--card); border-color:var(--border)"></div>
+            </div>
+            <div class="qr-note mt-4">
+              Dùng app đối tác để quét & xác thực. Nhân viên có thể nhập mã thủ công nếu cần.
+            </div>
           </div>
         </div>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <div class="max-w-6xl mx-auto px-4 py-4 text-center text-sm muted">
-      © 2025 Quiz & Assistant — Design by Mr.Hecker
-    </div>
-  </footer>
+      </section>
+    </main>
+  </div>
 
   <!-- Toast -->
   <div id="toast" class="toast"><strong id="toast-title"></strong><div id="toast-msg" class="mt-1 text-sm"></div></div>
@@ -138,7 +147,7 @@
   <!-- QRCode.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- ============ ThemeManager v2.1 (y như redeem) ============ -->
+  <!-- ============ ThemeManager v2.1 (y như redeem, đã dùng ở voucher cũ) ============ -->
   <script>
   (function ThemeManager_v21(){
     var ThemeManager;
@@ -178,25 +187,23 @@
     }
     function saveFS(t){
       if (isSaving) return; clearTimeout(saveTimer);
-      saveTimer = setTimeout(async()=>{
-        try{ isSaving = true; await _saveToFS(t); }catch(e){ console.warn('[ThemeManager] save fail:', e); }finally{ isSaving=false; }
-      }, SAVE_DELAY);
+      saveTimer = setTimeout(async()=>{ try{ isSaving = true; await _saveToFS(t); }catch(e){ console.warn('[ThemeManager] save fail:', e); }finally{ isSaving=false; } }, SAVE_DELAY);
     }
 
-    // Init with LS or system
+    // Init
     (function initFirst(){
       const ls = localStorage.getItem(LS_KEY);
       applyTheme(ls || getSystemPref());
     })();
 
-    // follow system if not logged in & not forced
+    // Follow system if not logged in
     let mql = null;
     function attachSys(){
       if (!window.matchMedia) return;
       mql = window.matchMedia('(prefers-color-scheme: light)');
       const onC = ()=> {
         const u = (firebase?.auth?.().currentUser);
-        if (u) return; // when logged in we respect user choice synced
+        if (u) return;
         const sys = getSystemPref();
         applyTheme(sys); saveToLocal(sys);
       };
@@ -209,7 +216,7 @@
     }
     attachSys();
 
-    // bind toggle button (auto inject if missing)
+    // Bind toggle
     function bindToggle(){
       const b = document.getElementById('themeBtn');
       if (!b || b.__tmBound) return;
@@ -220,17 +227,18 @@
     const mo = new MutationObserver(()=>bindToggle());
     mo.observe(document.documentElement, { childList:true, subtree:true });
 
+    // Auto add button if thiếu (phòng hờ)
     if (!document.getElementById('themeBtn')){
       const auto = document.createElement('button');
       auto.id = 'themeBtn'; auto.title='Đổi giao diện';
-      auto.className='btn';
+      auto.className='theme-toggle';
       auto.innerHTML = '<img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">';
       auto.style.cssText = 'position:fixed;right:12px;bottom:12px;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:12px;padding:8px 12px;z-index:9999;box-shadow:0 6px 18px rgba(0,0,0,.15);';
       document.body.appendChild(auto);
       bindToggle();
     }
 
-    // watch auth to sync FS
+    // Sync theo auth
     waitForFb(()=>{
       try{
         firebase.auth().onAuthStateChanged(async u=>{
@@ -249,14 +257,14 @@
       }catch(e){ console.warn('[ThemeManager] auth watcher error:', e); }
     });
 
-    // cross-tab sync
+    // Cross-tab
     window.addEventListener('storage', e=>{
       if (e.key !== LS_KEY) return;
       const next = e.newValue || getSystemPref();
       if (next !== currentTheme) applyTheme(next);
     });
 
-    // Public API (y như redeem)
+    // API
     ThemeManager = {
       getTheme(){ return currentTheme || document.documentElement.getAttribute('data-theme') || getSystemPref(); },
       async setTheme(t){
@@ -273,11 +281,10 @@
   })();
   </script>
 
-  <!-- Đồng bộ icon nút + favicon + QR theo themechange -->
+  <!-- Đồng bộ icon & favicon theo themechange -->
   <script>
     const faviconEl = document.getElementById('favicon');
     const themeIcon = document.getElementById('themeIcon');
-
     function applyThemeAssets(mode){
       if (themeIcon){
         themeIcon.src = mode==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
@@ -285,21 +292,16 @@
       }
       if (faviconEl){
         faviconEl.href = mode==='dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
-        // ép Chrome refresh favicon
         const bust = '?v=' + Date.now();
         faviconEl.href = faviconEl.href.split('?')[0] + bust;
       }
-      // đổi màu QR
+      // cập nhật lại QR theo màu theme
       if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
     }
-
-    // lần đầu
     (function initIconOnce(){
       const mode = (window.ThemeManager?.getTheme && window.ThemeManager.getTheme()) || 'dark';
       applyThemeAssets(mode);
     })();
-
-    // lắng nghe themechange (từ ThemeManager v2.1)
     window.addEventListener('themechange', (e)=>{
       const mode = e?.detail?.theme || 'dark';
       applyThemeAssets(mode);
@@ -319,7 +321,7 @@
     }
   </script>
 
-  <!-- =================== App logic =================== -->
+  <!-- =================== App logic (giữ nguyên từ voucher cũ) =================== -->
   <script>
     // Firebase init
     const firebaseConfig = {
@@ -452,21 +454,4 @@
         giftNameEl.textContent = giftName;
         voucherIdEl.textContent= id;
         issuedAtEl.textContent = issued ? issued.toLocaleString('vi-VN') : '—';
-        expiresAtEl.textContent= expires ? expires.toLocaleString('vi-VN') : '—';
-        setStatusBadge(status);
-
-        window.__lastVoucherId = id;
-        renderQRCode(id);
-
-        if (expires) startCountdown(expires.getTime());
-        else remainingEl.textContent = '—';
-
-        showToast('Tải thành công','Voucher đã sẵn sàng để quét.','success');
-      }catch(e){
-        console.error(e);
-        showToast('Lỗi tải', e.message || 'Không thể tải voucher.','error');
-      }
-    });
-  </script>
-</body>
-</html>
+        expiresAtEl.textConte
