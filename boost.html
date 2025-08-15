@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Boost XP</title>
+
+  <!-- Favicon SVG -->
+  <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    :root{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
+    @media (prefers-color-scheme: light){
+      :root{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    }
+    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    :root[data-theme="dark"]{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
+
+    body{font-family: ui-sans-serif,system-ui; background:var(--bg); color:var(--text);}
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); }
+    .btn{ appearance:none; border:none; cursor:pointer; background:var(--primary); color:#fff; font-weight:700; padding:10px 14px; border-radius:12px; transition: transform .12s ease, background .2s ease; display:inline-flex; align-items:center; gap:8px; }
+    .btn:hover{ transform:translateY(-1px); background:var(--primary-strong);}
+    .btn.secondary{ background:transparent; color:var(--text); border:1px solid var(--border); }
+    .btn.secondary:hover{ background:var(--bg-soft);}
+    .icon{width:18px;height:18px;object-fit:contain;display:inline-block}
+  </style>
+</head>
+<body class="p-5">
+
+  <!-- Nút đổi theme -->
+  <div class="fixed top-2 right-2">
+    <button class="btn secondary" id="themeBtn" title="Đổi giao diện">
+      <img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">
+    </button>
+  </div>
+
+  <div class="card max-w-md mx-auto p-6">
+    <h2 class="text-2xl font-bold mb-3">Boost XP</h2>
+    <div class="flex items-center gap-2 mb-3">
+      <img src="assets/info.svg" class="icon" alt="status">
+      <p id="status">Đang kiểm tra đăng nhập...</p>
+    </div>
+    <input type="number" id="xpAmount" class="w-full p-2 rounded border mb-3 text-black" placeholder="Nhập số XP muốn cộng" value="50">
+    <button id="boost" class="btn w-full">
+      <img src="assets/boost.svg" class="icon" alt="boost"> Boost XP
+    </button>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+      authDomain: "loginandsignin-4932b.firebaseapp.com",
+      projectId: "loginandsignin-4932b",
+      storageBucket: "loginandsignin-4932b.appspot.com",
+      messagingSenderId: "863133586719",
+      appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = null;
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        document.getElementById("status").innerText = `Đang đăng nhập: ${user.email}`;
+      } else {
+        document.getElementById("status").innerHTML = `<img src="assets/warning.svg" class="icon" alt="warn"> Bạn chưa đăng nhập. Hãy đăng nhập trước.`;
+        document.getElementById("boost").disabled = true;
+      }
+    });
+
+    document.getElementById("boost").addEventListener("click", async () => {
+      if (!currentUser) return alert("Chưa đăng nhập!");
+      const amount = parseInt(document.getElementById("xpAmount").value) || 0;
+      if (amount <= 0) return alert("Nhập số XP hợp lệ!");
+
+      const userRef = db.collection("users").doc(currentUser.uid);
+      const snap = await userRef.get();
+      let newXP = amount;
+      let level = 1;
+
+      if (snap.exists) {
+        const data = snap.data();
+        newXP = (data.xp || 0) + amount;
+        level = data.level || 1;
+      }
+
+      await userRef.set({ xp: newXP, level }, { merge: true });
+      alert(`✅ Boost thành công! XP mới: ${newXP}`);
+    });
+  </script>
+
+  <!-- Theme Manager -->
+  <script>
+    (function(){
+      var ThemeManager;
+      const LS_KEY='voucher-theme', root=document.documentElement;
+      let currentTheme=null;
+      const getSystemPref=()=> (window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
+      function dispatchChange(theme){window.dispatchEvent(new CustomEvent('themechange',{detail:{theme}}))}
+      function applyTheme(t){ currentTheme=t; root.setAttribute('data-theme',t); dispatchChange(t);}
+      function saveToLocal(t){ localStorage.setItem(LS_KEY,t);}
+      (function(){ const ls=localStorage.getItem(LS_KEY); applyTheme(ls||getSystemPref()); })();
+      document.getElementById('themeBtn')?.addEventListener('click', ()=> ThemeManager?.toggle());
+      ThemeManager = { getTheme(){return currentTheme||root.getAttribute('data-theme')||getSystemPref();}, setTheme(t){applyTheme(t);saveToLocal(t);}, toggle(){this.setTheme(this.getTheme()==='dark'?'light':'dark');} };
+      window.ThemeManager = ThemeManager;
+      function applyAssets(mode){
+        document.getElementById('themeIcon').src = mode==='dark'?'assets/theme-dark.svg':'assets/theme-light.svg';
+        const fav=document.getElementById('favicon'); fav.href = mode==='dark'?'assets/favicon-dark.svg':'assets/favicon-light.svg';
+        fav.href = fav.href.split('?')[0] + '?v=' + Date.now();
+      }
+      applyAssets(ThemeManager.getTheme());
+      window.addEventListener('themechange', e=>applyAssets(e.detail.theme));
+    })();
+  </script>
+</body>
+</html>

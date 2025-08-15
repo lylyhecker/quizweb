@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 - Không tìm thấy trang</title>
+
+  <!-- Favicon SVG -->
+  <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
+    @media (prefers-color-scheme: light){
+      :root{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    }
+    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    :root[data-theme="dark"]{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
+
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--text);
+      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(122,162,255,.18), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(125,211,252,.16), transparent 60%),
+        var(--bg);
+    }
+    .card{ background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); }
+    .btn{ appearance:none; border:none; cursor:pointer; background:var(--primary); color:#fff; font-weight:700; padding:10px 14px; border-radius:12px; transition:transform .12s ease, background .2s ease; box-shadow:0 6px 18px rgba(37,99,235,.25); display:inline-flex; align-items:center; gap:8px; justify-content:center; text-decoration:none; }
+    .btn:hover{ transform:translateY(-1px); background:var(--primary-strong); }
+    .btn.secondary{ background:transparent; color:var(--text); border:1px solid var(--border); box-shadow:none; }
+    .btn.secondary:hover{ background:var(--bg-soft); }
+    .icon{width:18px;height:18px;object-fit:contain;display:inline-block}
+  </style>
+</head>
+<body>
+  <!-- Nút đổi theme -->
+  <div class="fixed top-2 right-2">
+    <button class="btn secondary" id="themeBtn" title="Đổi giao diện">
+      <img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">
+    </button>
+  </div>
+
+  <main class="min-h-screen flex items-center justify-center p-5">
+    <section class="card max-w-xl w-full p-8 text-center">
+      <img src="assets/404.svg" class="w-16 h-16 mx-auto mb-4" alt="not-found">
+      <h1 class="text-5xl font-extrabold">404</h1>
+      <h2 class="text-2xl font-semibold mt-2 muted">Ôi không! Trang không tìm thấy</h2>
+      <p class="mt-4 muted">
+        Có vẻ bạn đã lạc đường trong hành trình! Trang bạn đang tìm không tồn tại.
+        Hãy kiểm tra lại URL hoặc quay về trang chủ để tiếp tục khám phá.
+      </p>
+      <div class="mt-6 flex items-center justify-center gap-3 flex-wrap">
+        <a href="index.html" class="btn">
+          <img src="assets/homepage.svg" class="icon" alt="home"> Trang chủ
+        </a>
+        <a href="login.html" class="btn secondary">
+          <img src="assets/user.svg" class="icon" alt="login"> Đăng nhập
+        </a>
+      </div>
+      <img src="https://via.placeholder.com/300x200?text=H%C3%A0nh+Tr%C3%ACnh+Du+L%E1%BB%8Bch" alt="Travel Illustration" class="mx-auto mt-8 rounded-lg shadow">
+    </section>
+  </main>
+
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig={apiKey:"AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",authDomain:"loginandsignin-4932b.firebaseapp.com",projectId:"loginandsignin-4932b",storageBucket:"loginandsignin-4932b.appspot.com",messagingSenderId:"863133586719",appId:"1:863133586719:web:81eb32db8e08e8d89e8c2a"};
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
+  <!-- ThemeManager -->
+  <script>
+    (function ThemeManagerInit(){
+      var ThemeManager;
+      const LS_KEY='voucher-theme', root=document.documentElement;
+      let currentTheme=null;
+
+      const getSystemPref=()=> (window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
+      function dispatchChange(theme){ try{window.dispatchEvent(new CustomEvent('themechange',{detail:{theme}}))}catch{} }
+      function applyTheme(t){ currentTheme=t; t?root.setAttribute('data-theme',t):root.removeAttribute('data-theme'); dispatchChange(t); }
+      function saveToLocal(t){ t?localStorage.setItem(LS_KEY,t):localStorage.removeItem(LS_KEY); }
+
+      (function(){ const ls=localStorage.getItem(LS_KEY); applyTheme(ls||getSystemPref()); })();
+
+      document.getElementById('themeBtn')?.addEventListener('click', ()=> ThemeManager?.toggle());
+
+      ThemeManager = {
+        getTheme(){ return currentTheme || root.getAttribute('data-theme') || getSystemPref(); },
+        setTheme(t){ if(t!=='light'&&t!=='dark') return; applyTheme(t); saveToLocal(t); },
+        toggle(){ const cur=this.getTheme(); const next=(cur==='dark'?'light':'dark'); this.setTheme(next); }
+      };
+      window.ThemeManager = ThemeManager;
+
+      // favicon & icon đổi theo theme
+      function applyThemeAssets(mode){
+        document.getElementById('themeIcon').src = mode==='dark'?'assets/theme-dark.svg':'assets/theme-light.svg';
+        const fav = document.getElementById('favicon');
+        fav.href = mode==='dark'?'assets/favicon-dark.svg':'assets/favicon-light.svg';
+        fav.href = fav.href.split('?')[0] + '?v=' + Date.now();
+      }
+      applyThemeAssets(ThemeManager.getTheme());
+      window.addEventListener('themechange', e=> applyThemeAssets(e.detail.theme));
+    })();
+  </script>
+
+  <!-- Username Validator (chặn Unicode, chỉ ASCII) -->
+  <script>
+    (function UsernameValidatorInit(){
+      // Regex chặn Unicode (chỉ ASCII in được)
+      const NO_UNICODE_RE = /^[\x20-\x7E]+$/;
+      // Quy tắc username: 2–30, chỉ A-Z a-z 0-9 . _ -, không bắt đầu/kết thúc bằng . _ -, không có .. __ --
+      const USERNAME_ASCII_RE = /^(?!.*\.\.)(?!.*__)(?!.*--)[A-Za-z0-9](?:[A-Za-z0-9._-]{0,28}[A-Za-z0-9])$/;
+
+      function validateUsernameValue(val){
+        const s = (val||"").trim();
+        if(!NO_UNICODE_RE.test(s)) {
+          return { ok:false, msg:"Chỉ cho phép ASCII, không ký tự Unicode." };
+        }
+        if(!USERNAME_ASCII_RE.test(s)) {
+          return { ok:false, msg:"2–30 ký tự: A–Z a–z 0–9 . _ -, không đầu/cuối bằng . _ -, không có .. __ --" };
+        }
+        return { ok:true, msg:"" };
+      }
+
+      // Áp dụng tự động cho mọi input name="username" hoặc có data-username
+      function attach(el){
+        if(!el || el._usernameValidatorBound) return;
+        el._usernameValidatorBound = true;
+
+        // gợi ý pattern HTML nếu cần (không bắt buộc)
+        el.setAttribute("autocomplete","username");
+        el.setAttribute("spellcheck","false");
+        el.setAttribute("autocapitalize","off");
+        el.setAttribute("minlength","2");
+        el.setAttribute("maxlength","30");
+
+        el.addEventListener("input", () => {
+          const {ok, msg} = validateUsernameValue(el.value);
+          el.setCustomValidity(ok ? "" : msg);
+          el.reportValidity();
+        });
+
+        // Nếu nằm trong form, chặn submit khi không hợp lệ
+        el.form?.addEventListener("submit", (e) => {
+          const {ok, msg} = validateUsernameValue(el.value);
+          if(!ok){
+            e.preventDefault();
+            el.setCustomValidity(msg);
+            el.reportValidity();
+            el.focus();
+          } else {
+            el.setCustomValidity("");
+          }
+        });
+      }
+
+      // Tìm sẵn trên trang
+      document.querySelectorAll('input[name="username"], [data-username]').forEach(attach);
+
+      // Quan sát DOM để auto-attach nếu input được thêm sau
+      const obs = new MutationObserver((mutations)=>{
+        mutations.forEach(m=>{
+          m.addedNodes.forEach(node=>{
+            if(!(node instanceof Element)) return;
+            if(node.matches?.('input[name="username"], [data-username]')) attach(node);
+            node.querySelectorAll?.('input[name="username"], [data-username]').forEach(attach);
+          });
+        });
+      });
+      obs.observe(document.documentElement, {childList:true, subtree:true});
+
+      // Expose tiện cho trang khác tái dùng
+      window.UsernameValidator = {
+        validateRaw: (val)=> validateUsernameValue(val),
+        regex: { NO_UNICODE_RE, USERNAME_ASCII_RE },
+        attach
+      };
+    })();
+  </script>
+</body>
+</html>

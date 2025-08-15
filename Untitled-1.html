@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz & Assistant App</title>
+
+  <!-- Favicon SVG (sẽ được JS đổi giữa light/dark) -->
+  <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg" />
+
+  <!-- Tailwind chỉ dùng cho layout/spacing -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <style>
+    /* ========= THEME (giữ nguyên) ========= */
+    :root{
+      --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
+      --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444;
+      --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280;
+        --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626;
+        --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08);
+      }
+    }
+    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    :root[data-theme="dark"]{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
+
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, Arial;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(122,162,255,.18), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(125,211,252,.16), transparent 60%),
+        var(--bg);
+    }
+
+    .card{ background: var(--card); border:1px solid var(--border); border-radius:18px; box-shadow: var(--shadow); }
+    .app-header, .app-footer{ background: var(--card); border-bottom: 1px solid var(--border); color: var(--text); }
+    .app-footer{ border-bottom: none; border-top:1px solid var(--border); }
+
+    .btn{
+      appearance:none; border:none; cursor:pointer;
+      background: var(--primary); color:white; font-weight:700;
+      padding:10px 14px; border-radius:12px;
+      transition: transform .12s ease, background .2s ease;
+      box-shadow: 0 6px 18px rgba(37,99,235,.25);
+      text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+    }
+    .btn:hover{ transform: translateY(-1px); background: var(--primary-strong); }
+    .btn.secondary{ background: transparent; color: var(--text); border:1px solid var(--border); box-shadow:none; }
+    .btn.secondary:hover{ background: var(--bg-soft); }
+    .badge{ border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-size:12px; color:var(--muted); background: var(--bg-soft); }
+    .muted{ color: var(--muted); }
+
+    #xp-bar-container { width: 160px; height: 10px; background: var(--bg-soft); border:1px solid var(--border); border-radius: 999px; overflow: hidden; }
+    #xp-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), #60a5fa); transition: width 0.35s ease; }
+    #xp-text { font-size: 12px; color: var(--muted); margin-left: 8px; }
+
+    @keyframes blink { 0%{opacity:.2} 20%{opacity:1} 100%{opacity:.2} }
+    .typing { display: inline-flex; gap: 3px; }
+    .typing span { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: blink 1.4s infinite; }
+    .typing span:nth-child(2) { animation-delay: .2s; }
+    .typing span:nth-child(3) { animation-delay: .4s; }
+
+    #assistant-panel{ background: var(--card); border:1px solid var(--border); color: var(--text); border-radius: 12px; box-shadow: var(--shadow); }
+    #assistant-panel .input{ background: var(--card); color: var(--text); border:1px solid var(--border); border-radius: 10px; padding: 8px 10px; outline: none; }
+    #leaderboard-modal .modal-card{ background: var(--card); color: var(--text); border:1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+    .icon { width: 18px; height: 18px; object-fit: contain; display:inline-block }
+
+    /* Badge hiển thị ngay trong dòng lựa chọn người chơi bấm */
+    .opt-badge{
+      display:inline-flex; align-items:center; gap:6px;
+      margin-left:10px; padding:2px 8px; border-radius:999px;
+      font-size:12px; font-weight:700; border:1px solid transparent;
+    }
+    .opt-badge img{ width:14px; height:14px; opacity:.9; }
+    .opt-badge.correct{ background: rgba(37,99,235,.18); border-color: rgba(37,99,235,.35); }
+    .opt-badge.wrong{ background: rgba(220,38,38,.18); border-color: rgba(220,38,38,.35); }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="app-header shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <!-- logo: bỏ emoji -->
+        <img src="assets/logo.png" alt="logo" class="w-9 h-9 rounded-xl ring-1 ring-white/10 object-cover">
+        <div>
+          <h1 class="text-lg font-extrabold">Trắc Nghiệm & Trợ Lý</h1>
+          <div class="text-xs muted" id="statusHeader"></div>
+        </div>
+      </div>
+
+      <div id="auth-buttons" class="flex items-center gap-3 flex-wrap">
+        <span id="username" class="muted">Khách</span>
+
+        <!-- XP & Level -->
+        <div id="user-stats" class="flex items-center gap-2 ml-2">
+          <div id="xp-bar-container"><div id="xp-bar-fill"></div></div>
+          <span id="user-level" class="text-sm font-semibold muted">Lv 1 (0 XP)</span>
+        </div>
+
+        <a href="login.html" id="login-link" class="btn secondary">Đăng nhập</a>
+        <a href="signup.html" id="signup-link" class="btn secondary">Đăng ký</a>
+        <button id="logout-btn" onclick="logout()" class="btn secondary hidden">Đăng xuất</button>
+
+        <!-- nav: thay emoji bằng icon -->
+        <a class="btn secondary" href="library.html"><img src="assets/book.svg" class="icon" alt=""> <span>Thư viện</span></a>
+        <a class="btn secondary" href="redeem.html"><img src="assets/gift.svg" class="icon" alt=""> <span>Redeem</span></a>
+
+        <!-- Nút đổi giao diện: icon tự đổi light/dark -->
+        <button class="btn secondary" id="themeBtn" title="Đổi giao diện">
+          <img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-6xl mx-auto px-4 py-6">
+    <section class="mb-6 card p-5">
+      <div class="flex items-center gap-3 mb-3 justify-between flex-wrap">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <img src="assets/book.svg" class="icon" alt="">
+          <span>Trắc Nghiệm Về Huế</span>
+        </h2>
+        <div class="flex items-center gap-3">
+          <button id="generate-btn" onclick="generateQuestion()" class="btn">Tạo câu hỏi từ AI</button>
+          <button onclick="openLeaderboard()" class="btn" style="background: #f59e0b; box-shadow: 0 6px 18px rgba(245,158,11,.25);">
+            <img src="assets/leaderboard.svg" class="icon" alt=""> <span>Bảng xếp hạng</span>
+          </button>
+        </div>
+      </div>
+
+      <p id="remaining-count" class="text-sm muted mt-1"></p>
+
+      <div id="quiz-box" class="mt-4 hidden">
+        <p id="quiz-question" class="font-medium mb-2"></p>
+        <div id="quiz-options" class="space-y-2"></div>
+
+        <!-- Giải thích (tách riêng, không emoji) -->
+        <div id="explainWrap" class="hidden flex items-start gap-2 text-sm mt-1">
+          <img src="assets/info.svg" class="icon mt-[2px]" alt="info">
+          <p id="explainText" class="leading-relaxed"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Leaderboard -->
+  <div id="leaderboard-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="modal-card w-full max-w-md mx-auto mt-24 p-6 relative">
+      <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><img src="assets/leaderboard.svg" class="icon" alt=""> <span>Bảng xếp hạng hôm nay</span></h2>
+      <ul id="leaderboard-list" class="space-y-1 text-sm max-h-64 overflow-y-auto"></ul>
+      <button onclick="closeLeaderboard()" class="absolute top-2 right-3 text-xl muted hover:text-red-400" aria-label="Đóng">&times;</button>
+    </div>
+  </div>
+
+  <!-- Assistant Button & Panel -->
+  <button onclick="toggleAssistant()" class="fixed bottom-6 right-6 btn rounded-full p-3" title="Mở trợ lý">
+    <img src="assets/robot.svg" class="w-5 h-5" alt="assistant">
+  </button>
+
+  <div id="assistant-panel" class="fixed bottom-24 right-6 w-80 hidden">
+    <div class="p-4 border-b font-bold flex items-center gap-2" style="border-color:var(--border);">
+      <img src="assets/robot.svg" class="icon" alt=""><span>Trợ Lý AI Huế</span>
+    </div>
+    <div class="p-4 flex flex-col space-y-2 h-80 overflow-y-auto" id="chat-box"></div>
+    <div class="p-4 border-t flex items-center gap-2" style="border-color:var(--border);">
+      <input id="assistant-input" type="text" placeholder="Hỏi về Huế..." class="input flex-1"/>
+      <button onclick="askAssistant()" class="btn text-sm">Gửi</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="max-w-6xl mx-auto px-4 py-4 text-center">
+      <p class="text-sm muted">© 2025 Quiz & Assistant Web</p>
+      <p class="text-sm muted">Design by Mr.Hecker</p>
+      <button onclick="window.location.href='about.html'"
+        class="mt-2 px-4 py-2 rounded bg-[var(--primary)] hover:bg-[var(--primary-strong)] text-white">
+        About us
+      </button>
+    </div>
+  </footer>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    /* ====== Theme toggle + đổi icon + đổi favicon theo theme ====== */
+    const root = document.documentElement;
+    const LS_KEY = 'voucher-theme';
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) root.setAttribute('data-theme', saved);
+
+    const themeBtn = document.getElementById('themeBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const faviconEl = document.getElementById('favicon');
+
+    function resolveTheme(){
+      const t = root.getAttribute('data-theme');
+      if (t === 'dark' || t === 'light') return t;
+      // nếu chưa set, suy ra theo system preference
+      return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    }
+    function applyThemeIcon(){
+      const mode = resolveTheme();
+      themeIcon.src = mode === 'dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
+      themeIcon.alt = mode === 'dark' ? 'theme-dark' : 'theme-light';
+    }
+    function applyFavicon(){
+      const mode = resolveTheme();
+      if (faviconEl) {
+        faviconEl.href = mode === 'dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
+        // Bắt Chrome refresh favicon ngay
+        const cacheBust = '?v=' + Date.now();
+        faviconEl.href = faviconEl.href.split('?')[0] + cacheBust;
+      }
+    }
+    // khởi tạo icon & favicon khi load
+    applyThemeIcon();
+    applyFavicon();
+
+    themeBtn.addEventListener('click', () => {
+      const cur = root.getAttribute('data-theme');
+      const next = !cur ? (resolveTheme() === 'dark' ? 'light' : 'dark') : (cur === 'dark' ? 'light' : 'dark');
+      root.setAttribute('data-theme', next);
+      localStorage.setItem(LS_KEY, next);
+      applyThemeIcon();
+      applyFavicon();
+    });
+
+    // tự áp icon & favicon khi user đổi system theme (nếu không ép theme trong localStorage)
+    if (window.matchMedia){
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (!localStorage.getItem(LS_KEY)) { applyThemeIcon(); applyFavicon(); }
+      });
+    }
+
+    /* ====== API Gemini (giữ cấu trúc, bỏ emoji trong message) ====== */
+    window.GEMINI_KEY = 'AIzaSyD1DdWMyjh5ne8zpJKXJ8GdxB1k2a8INOM';
+
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    async function callGemini(messages) {
+      const prompt = messages.map(m => `${m.role}: ${m.content}`).join("\n");
+      const models = ["gemini-1.5-flash","gemini-1.5-flash-8b","gemini-1.5-pro"];
+      const retriable = new Set([429,500,502,503,504]);
+      const maxRetries = 4;
+
+      for (let mi=0; mi<models.length; mi++){
+        const model = models[mi];
+        for (let attempt=0; attempt<maxRetries; attempt++){
+          try {
+            const endpoint = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${encodeURIComponent(window.GEMINI_KEY)}`;
+            const res = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: { temperature:0.7, topK:40, topP:0.95, maxOutputTokens:1024 }
+              })
+            });
+            if (!res.ok){
+              let serverMsg=""; try{ const d=await res.json(); serverMsg=d?.error?.message?`: ${d.error.message}`:""; }catch{}
+              if (retriable.has(res.status) && attempt < maxRetries-1){
+                const delay=Math.pow(2,attempt)*200 + Math.floor(Math.random()*120);
+                await sleep(delay); continue;
+              }
+              if (mi < models.length-1) break;
+              throw new Error(`Lỗi API (${res.status})${serverMsg}`);
+            }
+            const data = await res.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            if (!text.trim()) throw new Error("Phản hồi trống.");
+            return text;
+          } catch (err){
+            if (attempt < maxRetries-1){
+              const delay=Math.pow(2,attempt)*200 + Math.floor(Math.random()*120);
+              await sleep(delay); continue;
+            }
+            if (mi < models.length-1) break;
+          }
+        }
+      }
+      return "Hiện mô hình đang quá tải. Hãy thử lại sau ít giây.";
+    }
+
+    /* ====== Firebase (giữ nguyên) ====== */
+    const firebaseConfig = {
+      apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+      authDomain: "loginandsignin-4932b.firebaseapp.com",
+      projectId: "loginandsignin-4932b",
+      storageBucket: "loginandsignin-4932b.appspot.com",
+      messagingSenderId: "863133586719",
+      appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = null;
+
+    // Quiz & XP
+    let quizRound = { total: 0, correct: 0 };
+    let playerXP = 0, playerLevel = 1;
+    const xpPerCorrect = 10, xpToLevelUp = 100;
+
+    async function loadUserStats() {
+      if (!auth.currentUser) return;
+      const docRef = db.collection("users").doc(auth.currentUser.uid);
+      const docSnap = await docRef.get();
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        playerXP = data.xp || 0;
+        playerLevel = data.level || 1;
+      } else {
+        await docRef.set({ xp: 0, level: 1 }, { merge: true });
+        playerXP = 0; playerLevel = 1;
+      }
+      updateXPBar();
+    }
+
+    function updateXPBar() {
+      const currentLevelXP = playerXP % xpToLevelUp;
+      const percent = Math.max(0, Math.min(100, (currentLevelXP / xpToLevelUp) * 100));
+      const headerFill = document.getElementById("xp-bar-fill");
+      if (headerFill) headerFill.style.width = percent + "%";
+      const lvlText = document.getElementById("user-level");
+      if (lvlText) lvlText.innerText = `Lv ${playerLevel} (${playerXP} XP)`;
+      const xpText = document.getElementById("xp-text");
+      if (xpText) xpText.innerText = `Level ${playerLevel} - XP: ${currentLevelXP}/${xpToLevelUp}`;
+    }
+
+    async function saveUserStats() {
+      if (!auth.currentUser) return;
+      const docRef = db.collection("users").doc(auth.currentUser.uid);
+      await docRef.set({ xp: playerXP, level: playerLevel }, { merge: true });
+      const lbRef = db.collection("leaderboard").doc(auth.currentUser.uid);
+      try {
+        const lbSnap = await lbRef.get();
+        if (lbSnap.exists) {
+          await lbRef.update({ xp: playerXP, level: playerLevel, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+      } catch (e) { console.warn('Leaderboard mirror failed', e); }
+    }
+
+    async function addXP(amount) {
+      playerXP += amount;
+      const newLevel = Math.floor(playerXP / xpToLevelUp) + 1;
+      if (newLevel > playerLevel) {
+        playerLevel = newLevel;
+        const msg = document.createElement('div');
+        msg.className = 'text-green-500 font-bold text-sm mt-2';
+        msg.innerText = `Bạn đã đạt Level ${playerLevel}!`;
+        const qb = document.getElementById('quiz-box');
+        if (qb) qb.prepend(msg);
+        setTimeout(() => msg.remove(), 2000);
+      }
+      updateXPBar();
+      await saveUserStats();
+    }
+
+    /* ====== Username: chặn Unicode & ký tự lạ khi hiển thị/lưu ====== */
+    const USERNAME_RE = /^[a-zA-Z0-9_-]+$/;
+    function sanitizeUsername(name){
+      if (!name) return "Khach";
+      // thay khoảng trắng -> -, loại Unicode/ký tự lạ
+      const ascii = name.normalize("NFKD").replace(/[^\x00-\x7F]/g,"");
+      const cleaned = ascii.replace(/\s+/g,"-").replace(/[^a-zA-Z0-9_-]/g,"");
+      return cleaned || "Khach";
+    }
+
+    auth.onAuthStateChanged(async user => {
+      if (user) {
+        currentUser = user;
+        const raw = user.displayName || user.email?.split('@')[0] || `ID-${user.uid.slice(0,6)}`;
+        const safe = sanitizeUsername(raw);
+        document.getElementById('username').innerText = safe;
+        document.getElementById('login-link').classList.add("hidden");
+        document.getElementById('signup-link').classList.add("hidden");
+        document.getElementById('logout-btn').classList.remove("hidden");
+        document.getElementById('statusHeader').textContent = 'Đã đăng nhập.';
+        setTimeout(()=>document.getElementById('statusHeader').textContent='', 1200);
+        await loadUserStats();
+        checkDailyLimit();
+      } else {
+        currentUser = null;
+        document.getElementById('username').innerText = 'Khách';
+        document.getElementById('statusHeader').innerHTML = 'Bạn cần <a class="btn secondary" href="login.html">đăng nhập</a> để chơi.';
+      }
+    });
+    function logout() { auth.signOut().then(() => location.reload()); }
+
+    function showNotification(title, message, type = 'info') {
+      const colors = {
+        success: 'bg-green-100 border-green-400 text-green-700',
+        error: 'bg-red-100 border-red-400 text-red-700',
+        info: 'bg-blue-100 border-blue-400 text-blue-700',
+        warning: 'bg-yellow-100 border-yellow-400 text-yellow-700'
+      };
+      const notification = document.createElement('div');
+      notification.className = `fixed top-6 right-6 border-l-4 p-4 rounded shadow z-50 transition-all duration-500 ease-in-out opacity-0 ${colors[type]}`;
+      notification.innerHTML = `<div class="flex justify-between items-start gap-4">
+        <div><strong class="block font-bold mb-1">${title}</strong><span class="block whitespace-pre-line">${message}</span></div>
+        <button class="text-xl font-bold leading-none focus:outline-none hover:text-red-500" onclick="this.closest('div').remove()">×</button>
+      </div>`;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.classList.add('opacity-100'), 50);
+      setTimeout(() => { notification.classList.remove('opacity-100'); setTimeout(() => notification.remove(), 500); }, 4000);
+    }
+
+    async function checkDailyLimit(){ document.getElementById("remaining-count").innerText = ""; }
+
+    // Anti-cheat (giữ nguyên logic)
+    let quizInProgress = false;
+    function enterFullscreen(){ if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); }
+    function exitFullscreen(){ if (document.fullscreenElement) document.exitFullscreen(); }
+    function startAntiCheat(){
+      quizInProgress = true; enterFullscreen();
+      document.addEventListener('fullscreenchange', onViolation);
+      document.addEventListener('visibilitychange', onViolation);
+      window.addEventListener('blur', onViolation);
+    }
+    function stopAntiCheat(){
+      quizInProgress = false;
+      document.removeEventListener('fullscreenchange', onViolation);
+      document.removeEventListener('visibilitychange', onViolation);
+      window.removeEventListener('blur', onViolation);
+    }
+    function onViolation(){
+      if (!quizInProgress) return;
+      if (!document.fullscreenElement || document.hidden){
+        cancelQuiz('Bạn đã rời khỏi màn hình/thoát fullscreen khi đang làm bài. Bài làm bị hủy.');
+      }
+    }
+    function cancelQuiz(reason){
+      quizInProgress = false; quizRound.total = 0; quizRound.correct = 0;
+      document.getElementById('quiz-box').classList.add('hidden');
+      stopAntiCheat(); exitFullscreen();
+      showNotification('Bài làm bị hủy', reason, 'error');
+    }
+
+    /* ====== Quiz chính (Gemini) — “Chính xác/Sai” hiện ngay trên lựa chọn ====== */
+    async function generateQuestion() {
+      if (!auth.currentUser) return alert('Vui lòng đăng nhập để sử dụng.');
+      if (!quizInProgress && quizRound.total === 0) startAntiCheat();
+
+      const userId = auth.currentUser.uid;
+      const quizBox = document.getElementById('quiz-box');
+      const quizQuestion = document.getElementById('quiz-question');
+      const quizOptions = document.getElementById('quiz-options');
+      const explainWrap = document.getElementById('explainWrap');
+      const explainText = document.getElementById('explainText');
+
+      quizBox.classList.remove('hidden');
+      quizQuestion.innerText = 'Đang lấy câu hỏi...';
+      quizOptions.innerHTML = '';
+      explainWrap.classList.add('hidden');
+      explainText.textContent = '';
+
+      const messages = [
+        { role: 'system', content: 'Bạn là trợ lý AI trả lời chính xác, ngắn gọn về Huế. Không dùng emoji trong đầu ra.' },
+        { role: 'user', content:
+`Hãy tạo 1 câu hỏi trắc nghiệm về Huế chính xác, phù hợp về các chủ đề về ẩm thực hoặc lịch sử hoặc văn hóa và không liên quan đến chính trị hay 1 cá nhận nào với định dạng sau:
+
+[Câu hỏi rõ ràng]
+
+A. [Lựa chọn A]
+B. [Lựa chọn B]
+C. [Lựa chọn C]
+Đáp án đúng: [A/B/C]
+Giải thích: [Giải thích ngắn gọn]` }
+      ];
+
+      try {
+        const output = await callGemini(messages);
+
+        const lines = output.split('\n').map(l => l.trim()).filter(Boolean);
+        const options = lines.filter(l => /^[ABC][.:、]/.test(l));
+        const correctLine = lines.find(l => l.toLowerCase().startsWith('đáp án đúng'));
+        const explainLine = lines.find(l => l.toLowerCase().startsWith('giải thích'));
+        const question = lines.find(l =>
+          !/^[ABC][.:、]/.test(l) && !l.toLowerCase().startsWith('đáp án đúng') && !l.toLowerCase().startsWith('giải thích')
+        );
+        if (!question || options.length < 3 || !correctLine || !explainLine) {
+          quizQuestion.innerText = 'Câu hỏi không hợp lệ hoặc định dạng không chuẩn.'; return;
+        }
+
+        const correctAnswer = (correctLine.split(':')[1] || '').trim().charAt(0).toUpperCase();
+        const explanation = (explainLine.split(':')[1] || '').trim();
+
+        quizQuestion.innerHTML = `<div class="text-sm muted mb-2">Câu hỏi ${quizRound.total + 1} / 10</div><div class="text-lg font-semibold">${question}</div>`;
+
+        let answered = false;
+
+        options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.className = 'block w-full text-left px-4 py-2 border rounded';
+          btn.style.borderColor = 'var(--border)';
+          btn.onmouseover = () => btn.style.background = 'var(--bg-soft)';
+          btn.onmouseout  = () => btn.style.background = 'transparent';
+
+          // Cấu trúc: [text lựa chọn] + [badge kết quả ẩn]
+          const textSpan = document.createElement('span');
+          textSpan.textContent = opt;
+
+          const badge = document.createElement('span');
+          badge.className = 'opt-badge hidden';
+          const badgeIcon = document.createElement('img');
+          badgeIcon.src = 'assets/check.svg';
+          const badgeLabel = document.createElement('span');
+          badge.appendChild(badgeIcon);
+          badge.appendChild(badgeLabel);
+
+          btn.appendChild(textSpan);
+          btn.appendChild(badge);
+
+          btn.onclick = async () => {
+            if (answered) return;
+            answered = true;
+
+            // disable tất cả nút
+            document.querySelectorAll('#quiz-options button').forEach(b=>{
+              b.disabled = true;
+              b.style.opacity = .9;
+              b.style.cursor = 'default';
+            });
+
+            const chosenLetter = opt.charAt(0).toUpperCase();
+            const isCorrect = (chosenLetter === correctAnswer);
+
+            // Hiển thị badge NGAY TRÊN LỰA CHỌN được bấm
+            badge.classList.remove('hidden');
+            if (isCorrect) {
+              badge.classList.remove('wrong');
+              badge.classList.add('correct');
+              badgeIcon.src = 'assets/check.svg';
+              badgeLabel.textContent = 'Chính xác';
+              quizRound.correct += 1;
+              await addXP(xpPerCorrect);
+            } else {
+              badge.classList.remove('correct');
+              badge.classList.add('wrong');
+              badgeIcon.src = 'assets/x.svg';
+              badgeLabel.textContent = 'Sai';
+              // (tuỳ chọn) tô viền nhẹ cho đáp án đúng để người chơi thấy
+              const correctBtn = Array.from(document.querySelectorAll('#quiz-options button'))
+                .find(b => b.textContent.trim().startsWith(correctAnswer));
+              if (correctBtn) correctBtn.style.boxShadow = '0 0 0 2px rgba(37,99,235,.35) inset';
+            }
+
+            quizRound.total += 1;
+
+            // Lưu lịch sử + leaderboard
+            try {
+              await db.collection('users').doc(userId).collection('history').add({
+                question, options, chosen: chosenLetter, correct: correctAnswer, isCorrect,
+                explanation, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            } catch(e){ console.warn('history save failed', e) }
+
+            try {
+              const ref = db.collection('leaderboard').doc(userId);
+              const snap = await ref.get();
+              if (snap.exists) {
+                await ref.update({
+                  score: firebase.firestore.FieldValue.increment(isCorrect ? 1 : 0),
+                  totalQuestions: firebase.firestore.FieldValue.increment(1),
+                  correctAnswers: firebase.firestore.FieldValue.increment(isCorrect ? 1 : 0),
+                  lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+              } else {
+                const user = auth.currentUser; if (!user) return;
+                const raw = user.displayName?.trim() || user.email?.split('@')[0] || `ID-${user.uid.slice(0,6)}`;
+                const displayName = sanitizeUsername(raw);
+                await ref.set({
+                  uid: user.uid, displayName,
+                  score: isCorrect ? 1 : 0, totalQuestions: 1, correctAnswers: isCorrect ? 1 : 0,
+                  xp: playerXP, level: playerLevel,
+                  lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+              }
+            } catch(e){ console.warn('leaderboard update failed', e); }
+
+            // Hiện GIẢI THÍCH ở dưới
+            const explainWrap = document.getElementById('explainWrap');
+            const explainText = document.getElementById('explainText');
+            explainWrap.classList.remove('hidden');
+            explainText.textContent = 'Đang tạo giải thích ngắn...';
+            try{
+              const msg = [
+                { role:'system', content:'Giải thích thật ngắn (1–2 câu), rõ ràng, không dùng emoji.' },
+                { role:'user', content:`Câu hỏi: "${question}". Đáp án đúng: "${correctAnswer}". Hãy giải thích ngắn gọn vì sao.` }
+              ];
+              const ai = await callGemini(msg);
+              explainText.textContent = ai.trim() || `Đáp án: ${correctAnswer}. ${explanation}`;
+            }catch(_){
+              explainText.textContent = `Đáp án: ${correctAnswer}. ${explanation}`;
+            }
+
+            // Hàng nút tiếp tục / redeem
+            const buttonRow = document.createElement('div');
+            buttonRow.className = 'mt-3 flex gap-3';
+            const continueBtn = document.createElement('button');
+            continueBtn.className = 'btn';
+            continueBtn.innerText = (quizRound.total >= 10) ? 'Hoàn thành' : 'Tiếp tục';
+            continueBtn.onclick = () => {
+              buttonRow.remove();
+              if (quizRound.total >= 10) {
+                const enough = quizRound.correct >= 7;
+                stopAntiCheat(); exitFullscreen();
+                showNotification('Kết quả quiz',
+`Tổng số câu: ${quizRound.total}
+Đúng: ${quizRound.correct}/${quizRound.total}
+${enough ? 'Bạn đủ điều kiện nhận phần thưởng hôm nay!' : 'Cần ≥ 7 câu đúng để đủ điều kiện.'}`,
+                  enough ? 'success' : 'info'
+                );
+                quizRound.correct = 0; quizRound.total = 0;
+                document.getElementById('quiz-box').classList.add('hidden');
+              } else {
+                generateQuestion();
+              }
+            };
+            const redeemBtn = document.createElement('button');
+            redeemBtn.className = 'btn';
+            redeemBtn.style.background = '#16a34a';
+            redeemBtn.style.boxShadow = '0 6px 18px rgba(22,163,74,.25)';
+            redeemBtn.innerText = 'Redeem';
+            redeemBtn.onclick = () => {
+              if (quizRound.correct >= 7) window.location.href = 'redeem.html';
+              else alert('Bạn cần đạt ít nhất 7 câu đúng để đổi quà.');
+            };
+            buttonRow.appendChild(continueBtn);
+            buttonRow.appendChild(redeemBtn);
+            document.getElementById('quiz-options').appendChild(buttonRow);
+          };
+
+          document.getElementById('quiz-options').appendChild(btn);
+        });
+      } catch (err) {
+        document.getElementById('quiz-question').innerText = err.message || 'Lỗi khi gọi AI.';
+      }
+    }
+
+    function toggleAssistant(){ document.getElementById('assistant-panel').classList.toggle('hidden'); }
+
+    // Assistant chat (không emoji)
+    async function askAssistant() {
+      const input = document.getElementById('assistant-input');
+      const chatBox = document.getElementById('chat-box');
+      const userMessage = input.value.trim();
+      if (!userMessage) return alert('Vui lòng nhập câu hỏi!');
+
+      chatBox.innerHTML += `<div class="text-right">
+        <div class="inline-block" style="background:#c7d2fe;color:#1e293b; padding:8px 12px; border-radius:10px; margin-bottom:4px; max-width:80%">${userMessage}</div>
+      </div>`;
+      input.value='';
+      chatBox.innerHTML += `<div class="text-left" id="typing-indicator">
+        <div class="inline-block" style="background:var(--bg-soft); color:var(--text); padding:8px 12px; border-radius:10px; margin-bottom:4px; max-width:80%">
+          <div class="typing"><span></span><span></span><span></span></div>
+        </div>
+      </div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      const messages = [
+        { role: 'system', content: 'Bạn là trợ lý AI trả lời chính xác, ngắn gọn, không dùng emoji.' },
+        { role: 'user', content: userMessage }
+      ];
+      try {
+        const reply = await callGemini(messages);
+        chatBox.lastElementChild.remove();
+        chatBox.innerHTML += `<div class="text-left">
+          <div class="inline-block" style="background:var(--bg-soft); color:var(--text); padding:8px 12px; border-radius:10px; margin-bottom:4px; max-width:80%; white-space:pre-line">${reply}</div>
+        </div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      } catch (err) {
+        chatBox.lastElementChild?.remove();
+        chatBox.innerHTML += `<div class="text-left">
+          <div class="inline-block" style="background:#fee2e2; color:#991b1b; padding:8px 12px; border-radius:10px; margin-bottom:4px; max-width:80%">${err.message || 'Lỗi khi gọi AI.'}</div>
+        </div>`;
+      }
+    }
+
+    // Leaderboard (sanitize displayName khi render)
+    function openLeaderboard(){ loadLeaderboard(); document.getElementById('leaderboard-modal').classList.remove('hidden'); }
+    function closeLeaderboard(){ document.getElementById('leaderboard-modal').classList.add('hidden'); }
+
+    async function loadLeaderboard() {
+      const list = document.getElementById('leaderboard-list'); list.innerHTML = 'Đang tải...';
+      try {
+        const snapshot = await db.collection('leaderboard').orderBy('score','desc').limit(10).get();
+        if (snapshot.empty) { list.innerHTML = '<li class="muted">Chưa có ai ghi điểm hôm nay.</li>'; return; }
+        list.innerHTML=''; let rank=1;
+        snapshot.forEach(doc=>{
+          const data = doc.data();
+          const rawName = data.displayName?.trim() || (data.uid?`ID-${data.uid.slice(0,6)}`:'Khach');
+          const displayName = sanitizeUsername(rawName);
+          const score = typeof data.score==='number'?data.score:0;
+          const li=document.createElement('li');
+          li.className='flex justify-between items-center py-2 px-3';
+          li.style.borderBottom = '1px solid var(--border)';
+          if(rank===1) li.style.background = 'rgba(245, 158, 11, .15)';
+          else if(rank===2) li.style.background = 'rgba(107, 114, 128, .15)';
+          else if(rank===3) li.style.background = 'rgba(249, 115, 22, .15)';
+          li.innerHTML=`<span>${rank}.</span><span>${displayName}</span><span style="color:var(--primary); font-weight:700">${score} điểm</span>`;
+          list.appendChild(li); rank++;
+        });
+      } catch(e){
+        console.error('Lỗi tải bảng xếp hạng:', e);
+        list.innerHTML=`<li style="color:var(--err)">Lỗi tải bảng xếp hạng: ${e.message}</li>`;
+      }
+    }
+
+    // Enter gửi chat
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('assistant-input')
+        ?.addEventListener('keypress', e => { if(e.key==='Enter') askAssistant(); });
+    });
+  </script>
+</body>
+</html>

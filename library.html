@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Thư viện Voucher</title>
+
+  <!-- Favicon SVG -->
+  <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg">
+
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
+      --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444;
+      --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    @media (prefers-color-scheme: light){
+      :root{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    }
+    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    :root[data-theme="dark"]{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100%;
+      font-family: ui-sans-serif,system-ui;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(122,162,255,.18), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(125,211,252,.16), transparent 60%),
+        var(--bg);
+    }
+    .wrap{ max-width:1100px; margin:0 auto; padding:28px 20px 56px; }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 20px; }
+    .title{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
+    .logo{ width:36px; height:36px; border-radius:12px; display:grid; place-items:center; background: linear-gradient(135deg, var(--primary), #60a5fa); box-shadow: var(--shadow); }
+    .icon{width:18px;height:18px;object-fit:contain;display:inline-block}
+    .actions{ display:flex; gap:10px; flex-wrap:wrap; }
+    .btn{ appearance:none; border:none; cursor:pointer; background: var(--primary); color:white; font-weight:700; padding:10px 14px; border-radius:12px; transition: transform .12s ease, background .2s ease; box-shadow: 0 6px 18px rgba(37,99,235,.25); text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+    .btn:hover{ transform: translateY(-1px); background: var(--primary-strong); }
+    .btn.secondary{ background: transparent; color: var(--text); border:1px solid var(--border); box-shadow:none; }
+    .btn.secondary:hover{ background: var(--bg-soft); }
+    .theme-toggle{ border:1px solid var(--border); background: var(--card); color:var(--text); border-radius: 12px; padding:8px 12px; cursor:pointer; }
+    .grid{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:16px; }
+    @media (max-width: 980px){ .grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 640px){ .grid{ grid-template-columns: 1fr; } }
+    .card{ background: var(--card); border:1px solid var(--border); border-radius:18px; padding:16px; box-shadow: var(--shadow); display:flex; flex-direction:column; gap:8px; }
+    .muted{ color:var(--muted); font-size:14px; }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .badge{ border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-size:12px; color:var(--muted); background: var(--bg-soft); }
+    .search{ display:flex; gap:10px; margin: 8px 0 16px; }
+    .input{ flex:1; border:1px solid var(--border); border-radius:12px; padding:10px 12px; background: var(--card); color: var(--text); outline:none; }
+    .empty{ text-align:center; color:var(--muted); padding:40px 0; }
+    .skeleton{ height:120px; border-radius:14px; background: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06)); animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%{opacity:.6} 50%{opacity:1} 100%{opacity:.6} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <div class="logo">
+          <img src="assets/book.svg" class="icon" alt="library">
+        </div>
+        <div>
+          <div>Thư viện Voucher</div>
+          <div class="muted" id="status">Đang tải...</div>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn secondary" href="redeem.html">
+          <img src="assets/back.svg" class="icon" alt="back"> Quay lại
+        </a>
+        <a class="btn" href="voucher.html">
+          <img src="assets/voucher.svg" class="icon" alt="voucher"> Voucher
+        </a>
+        <button class="theme-toggle" id="themeBtn" title="Đổi giao diện">
+          <img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">
+        </button>
+      </div>
+    </div>
+
+    <div class="search">
+      <input class="input" id="q" placeholder="Tìm theo tên quà..." />
+      <button class="btn secondary" id="clearBtn">Xóa</button>
+    </div>
+
+    <div class="grid" id="list">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+  </div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+    authDomain: "loginandsignin-4932b.firebaseapp.com",
+    projectId: "loginandsignin-4932b",
+    storageBucket: "loginandsignin-4932b.appspot.com",
+    messagingSenderId: "863133586719",
+    appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+</script>
+
+<!-- Theme Manager -->
+<script>
+  (function(){
+    var ThemeManager;
+    const LS_KEY='voucher-theme', root=document.documentElement;
+    let currentTheme=null;
+    const getSystemPref=()=> (window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
+    function dispatchChange(theme){window.dispatchEvent(new CustomEvent('themechange',{detail:{theme}}))}
+    function applyTheme(t){ currentTheme=t; root.setAttribute('data-theme',t); dispatchChange(t);}
+    function saveToLocal(t){ localStorage.setItem(LS_KEY,t);}
+    (function(){ const ls=localStorage.getItem(LS_KEY); applyTheme(ls||getSystemPref()); })();
+    document.getElementById('themeBtn')?.addEventListener('click', ()=> ThemeManager?.toggle());
+    ThemeManager = { getTheme(){return currentTheme||root.getAttribute('data-theme')||getSystemPref();}, setTheme(t){applyTheme(t);saveToLocal(t);}, toggle(){this.setTheme(this.getTheme()==='dark'?'light':'dark');} };
+    window.ThemeManager = ThemeManager;
+    function applyAssets(mode){
+      document.getElementById('themeIcon').src = mode==='dark'?'assets/theme-dark.svg':'assets/theme-light.svg';
+      const fav=document.getElementById('favicon'); fav.href = mode==='dark'?'assets/favicon-dark.svg':'assets/favicon-light.svg';
+      fav.href = fav.href.split('?')[0] + '?v=' + Date.now();
+    }
+    applyAssets(ThemeManager.getTheme());
+    window.addEventListener('themechange', e=>applyAssets(e.detail.theme));
+  })();
+</script>
+
+<script>
+  const statusEl = document.getElementById('status');
+  const listEl = document.getElementById('list');
+  const q = document.getElementById('q');
+  const clearBtn = document.getElementById('clearBtn');
+
+  let allDocs = [];
+  let currentUser = null;
+
+  auth.onAuthStateChanged(async user => {
+    currentUser = user;
+    if (!user) {
+      statusEl.innerHTML = 'Bạn cần <a class="btn secondary" href="login.html">đăng nhập</a> để xem.';
+      listEl.innerHTML = '';
+      return;
+    }
+    statusEl.textContent = 'Đang tải voucher...';
+
+    try {
+      const [vouchersSnap, redeemSnap] = await Promise.all([
+        db.collection('vouchers').where('uid','==', user.uid).get(),
+        db.collection('redeem_logs').where('uid','==', user.uid).get()
+      ]);
+      allDocs = [...vouchersSnap.docs, ...redeemSnap.docs].map(doc => ({ id: doc.id, ...doc.data() }));
+      render(allDocs);
+      statusEl.textContent = allDocs.length ? `Có ${allDocs.length} voucher` : 'Bạn chưa claim voucher nào.';
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Lỗi tải voucher: ' + (err.message || err);
+      listEl.innerHTML = '';
+    }
+  });
+
+  function getExpiry(data){
+    if (data.expiry) return (typeof data.expiry.toDate==='function')?data.expiry.toDate():new Date(data.expiry);
+    if (data.redeemedAt){ const d=(typeof data.redeemedAt.toDate==='function')?data.redeemedAt.toDate():new Date(data.redeemedAt); d.setDate(d.getDate()+7); return d; }
+    if (data.createdAt){ const d=(typeof data.createdAt.toDate==='function')?data.createdAt.toDate():new Date(data.createdAt); d.setDate(d.getDate()+7); return d; }
+    return null;
+  }
+
+  function render(data){
+    listEl.innerHTML = '';
+    if (!data.length){
+      listEl.innerHTML = `<div class="card empty">Không có kết quả.</div>`;
+      return;
+    }
+    data.sort((a,b) => (getExpiry(a)?.getTime()||9e15) - (getExpiry(b)?.getTime()||9e15));
+    for (const item of data){
+      const giftName = item.giftName || item.gift || 'Không rõ';
+      const expiry = getExpiry(item);
+      const expired = expiry && expiry.getTime() < Date.now();
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="row">
+          <h3 style="margin:0; font-size:18px">${giftName}</h3>
+          <span class="badge">${expired ? 'Hết hạn' : 'Còn hạn'}</span>
+        </div>
+        <div class="muted">Hết hạn: ${expiry ? expiry.toLocaleString('vi-VN') : 'Không có thông tin'}</div>
+        <div class="row">
+          <a class="btn secondary" href="voucher.html?id=${item.id}">Chi tiết</a>
+          <a class="btn" href="voucher.html?id=${item.id}">Sử dụng</a>
+        </div>
+      `;
+      listEl.appendChild(card);
+    }
+  }
+
+  q.addEventListener('input', () => {
+    const kw = q.value.trim().toLowerCase();
+    if (!kw) return render(allDocs);
+    render(allDocs.filter(x => (x.giftName || x.gift || '').toLowerCase().includes(kw)));
+  });
+  clearBtn.addEventListener('click', () => { q.value = ''; render(allDocs); q.focus(); });
+</script>
+
+<!-- ===== Username Validator (chặn Unicode, chỉ ASCII) ===== -->
+<script>
+  (function UsernameValidatorInit(){
+    // Regex chặn Unicode (chỉ ASCII in được)
+    const NO_UNICODE_RE = /^[\x20-\x7E]+$/;
+    // Quy tắc: 2–30, chỉ A-Z a-z 0-9 . _ -, không bắt đầu/kết thúc bằng . _ -, không có .. __ --
+    const USERNAME_ASCII_RE = /^(?!.*\.\.)(?!.*__)(?!.*--)[A-Za-z0-9](?:[A-Za-z0-9._-]{0,28}[A-Za-z0-9])$/;
+
+    function validateUsernameValue(val){
+      const s = (val||"").trim();
+      if(!NO_UNICODE_RE.test(s)) {
+        return { ok:false, msg:"Chỉ cho phép ASCII, không ký tự Unicode." };
+      }
+      if(!USERNAME_ASCII_RE.test(s)) {
+        return { ok:false, msg:"2–30 ký tự: A–Z a–z 0–9 . _ -, không đầu/cuối bằng . _ -, không có .. __ --" };
+      }
+      return { ok:true, msg:"" };
+    }
+
+    // Áp dụng tự động cho mọi input name="username" hoặc có data-username
+    function attach(el){
+      if(!el || el._usernameValidatorBound) return;
+      el._usernameValidatorBound = true;
+
+      el.setAttribute("autocomplete","username");
+      el.setAttribute("spellcheck","false");
+      el.setAttribute("autocapitalize","off");
+      el.setAttribute("minlength","2");
+      el.setAttribute("maxlength","30");
+
+      el.addEventListener("input", () => {
+        const {ok, msg} = validateUsernameValue(el.value);
+        el.setCustomValidity(ok ? "" : msg);
+        el.reportValidity();
+      });
+
+      el.form?.addEventListener("submit", (e) => {
+        const {ok, msg} = validateUsernameValue(el.value);
+        if(!ok){
+          e.preventDefault();
+          el.setCustomValidity(msg);
+          el.reportValidity();
+          el.focus();
+        } else {
+          el.setCustomValidity("");
+        }
+      });
+    }
+
+    // Tìm sẵn trên trang
+    document.querySelectorAll('input[name="username"], [data-username]').forEach(attach);
+
+    // Quan sát DOM để auto-attach nếu input được thêm sau
+    const obs = new MutationObserver((mutations)=>{
+      mutations.forEach(m=>{
+        m.addedNodes.forEach(node=>{
+          if(!(node instanceof Element)) return;
+          if(node.matches?.('input[name="username"], [data-username]')) attach(node);
+          node.querySelectorAll?.('input[name="username"], [data-username]').forEach(attach);
+        });
+      });
+    });
+    obs.observe(document.documentElement, {childList:true, subtree:true});
+
+    // Expose tiện cho tái sử dụng
+    window.UsernameValidator = {
+      validateRaw: (val)=> validateUsernameValue(val),
+      regex: { NO_UNICODE_RE, USERNAME_ASCII_RE },
+      attach
+    };
+  })();
+</script>
+</body>
+</html>

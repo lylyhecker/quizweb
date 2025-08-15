@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Giới thiệu — Nhóm tác giả & Sản phẩm</title>
+
+  <!-- Favicon SVG (đổi theo theme giống trang quiz) -->
+  <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg" />
+
+  <!-- Tailwind cho layout nhanh -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <style>
+    /* ========= THEME ========= (khớp quiz) */
+    :root{
+      --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
+      --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444;
+      --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280;
+        --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626;
+        --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08);
+      }
+    }
+    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    :root[data-theme="dark"]{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
+
+    /* ========= LAYOUT ========= */
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--text);
+      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(122,162,255,.18), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(125,211,252,.16), transparent 60%),
+        var(--bg);
+    }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); }
+    .btn{ appearance:none; border:none; cursor:pointer; background:var(--primary); color:#fff; font-weight:700; padding:10px 14px; border-radius:12px; transition: transform .12s ease, background .2s ease; box-shadow:0 6px 18px rgba(37,99,235,.25); text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+    .btn:hover{ transform:translateY(-1px); background:var(--primary-strong); }
+    .btn.secondary{ background:transparent; color:var(--text); border:1px solid var(--border); box-shadow:none; }
+    .btn.secondary:hover{ background:var(--bg-soft); }
+    .muted{ color: var(--muted); }
+    .chip{ display:inline-flex; align-items:center; gap:8px; border:1px solid var(--border); padding:6px 10px; border-radius:999px; background:var(--bg-soft); font-size:12px; }
+    .divider{ height:1px; background:var(--border); margin:16px 0; }
+
+    .icon { width: 18px; height: 18px; object-fit: contain; display:inline-block }
+
+    /* ========= Author cards ========= */
+    .author-card{ border:1px solid var(--border); background:var(--bg-soft); border-radius:14px; padding:14px; }
+    .author-head{ display:flex; gap:12px; align-items:center; justify-content:space-between; }
+    .author-left{ display:flex; gap:12px; align-items:center; }
+    .author-avatar{ width:64px; height:64px; border-radius:18px; box-shadow:var(--shadow); object-fit:cover; }
+    .author-title{ font-weight:700; }
+    .author-role{ font-size:12px; color:var(--muted); }
+
+    /* Collapsible (animated) */
+    .collapsible-content{
+      overflow:hidden;
+      max-height:0;
+      opacity:0;
+      transform: translateY(-4px);
+      transition: max-height .35s ease, opacity .25s ease, transform .25s ease;
+    }
+    .author-card[aria-expanded="true"] .collapsible-content{
+      opacity:1;
+      transform: translateY(0);
+      /* max-height set inline via JS để mượt */
+    }
+    .author-card .toggle-icon{ transition: transform .25s ease; }
+    .author-card[aria-expanded="true"] .toggle-icon{ transform: rotate(180deg); }
+
+    .link-slim{ color:var(--primary); text-decoration:underline; text-underline-offset:2px; }
+    .user-pic{ width:28px; height:28px; border-radius:999px; object-fit:cover; border:1px solid var(--border) }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="card max-w-6xl mx-auto mt-5 px-4 py-3">
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl grid place-items-center"
+             style="background: linear-gradient(135deg, var(--primary), #60a5fa); box-shadow: var(--shadow);">
+          <img src="assets/info.svg" alt="info" class="w-5 h-5">
+        </div>
+        <div>
+          <h1 class="text-lg font-extrabold">Giới thiệu — Nhóm Tác Giả & Sản phẩm</h1>
+          <div class="text-xs muted" id="authStatus">Chào mừng bạn!</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- Chip user: avatar local + tên -->
+        <span id="userChip" class="chip hidden">
+          <img id="userAvatar" class="user-pic" src="assets/avatar/default.png" alt="avatar">
+          <span id="userName">Guest</span>
+        </span>
+
+        <a class="btn secondary" href="quiz_ai_assistant_app.html">
+          <img src="assets/robot.svg" class="icon" alt="">
+          <span>Trang chính</span>
+        </a>
+        <a class="btn secondary" href="library.html">
+          <img src="assets/book.svg" class="icon" alt="">
+          <span>Thư viện</span>
+        </a>
+        <a class="btn secondary" href="redeem.html">
+          <img src="assets/gift.svg" class="icon" alt="">
+          <span>Redeem</span>
+        </a>
+        <a class="btn secondary" id="loginLink" href="login.html">Đăng nhập</a>
+
+        <!-- Theme: SVG đổi theo chế độ -->
+        <button class="btn secondary" id="themeBtn" title="Đổi giao diện">
+          <img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <!-- Hero -->
+    <section class="card p-6">
+      <div class="grid md:grid-cols-2 gap-6 items-center">
+        <div>
+          <h2 class="text-2xl font-bold mb-2">Về Sản Phẩm</h2>
+          <p class="muted">
+            Nền tảng trắc nghiệm & đổi quà dành cho cộng đồng yêu Huế: làm quiz, tích điểm, thư viện học liệu,
+            và đổi voucher bằng QR code.
+          </p>
+          <div class="flex flex-wrap gap-2 mt-3">
+            <span class="chip"><i class="fa-solid fa-bolt"></i> Nhanh</span>
+            <span class="chip"><i class="fa-solid fa-shield-heart"></i> An toàn</span>
+            <span class="chip"><i class="fa-solid fa-mobile-screen"></i> Responsive</span>
+            <span class="chip"><i class="fa-solid fa-qrcode"></i> QR Voucher</span>
+          </div>
+        </div>
+        <div class="text-center">
+          <img src="assets/avatar/hero.png" alt="Hero" class="mx-auto rounded-xl border" style="border-color:var(--border)">
+          <p class="muted text-sm mt-2">Giao diện demo minh hoạ.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Team (expand on click) -->
+    <section class="card p-6">
+      <h3 class="text-xl font-bold mb-4">Nhóm Tác Giả & Giáo Viên Hướng Dẫn</h3>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <!-- Author 1 (avatar local) -->
+        <article class="author-card" tabindex="0" role="button" aria-expanded="false" aria-controls="a1-content">
+          <div class="author-head">
+            <div class="author-left">
+              <img src="assets/avatar/author-a.jpg" class="author-avatar" alt="Nguyễn Văn A"/>
+              <div>
+                <div class="author-title">Nguyễn Văn A</div>
+                <div class="author-role">Nhóm trưởng</div>
+              </div>
+            </div>
+            <button class="btn secondary toggle-btn" type="button" aria-label="Mở chi tiết">
+              <i class="fa-solid fa-chevron-down toggle-icon"></i>
+            </button>
+          </div>
+          <div id="a1-content" class="collapsible-content mt-3">
+            <div class="p-4 rounded-xl" style="border:1px solid var(--border);">
+              <p class="muted text-sm">
+                Phụ trách kiến trúc đưa ra ý tưởng, phân tích và đưa ra ý kiến cho tổng thể về cả web và cũng như soạn thảo và nâng cấp tài liệu.
+                Phụ trách liên hệ và hợp tác với giáo viên hướng dẫn và các quán để cung cấp voucher.
+              </p>
+              <div class="divider"></div>
+              <ul class="list-disc pl-5 muted text-sm space-y-1">
+                <li>Liên hệ / hợp tác với các quán ăn.</li>
+                <li>Report và Test Website</li>
+                <li>Quản lý phát hành & tài liệu kỹ thuật</li>
+              </ul>
+              <div class="mt-3 text-sm">Liên hệ: <a class="link-slim" href="mailto:demo@gmail.com">demo@gmail.com</a></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Author 2 -->
+        <article class="author-card" tabindex="0" role="button" aria-expanded="false" aria-controls="a2-content">
+          <div class="author-head">
+            <div class="author-left">
+              <img src="assets/avatar/author-b.jpg" class="author-avatar" alt="MrHecker avatar"/>
+              <div>
+                <div class="author-title">Hoàng Quốc Bảo - MrHecker</div>
+                <div class="author-role">Main Developer</div>
+              </div>
+            </div>
+            <button class="btn secondary toggle-btn" type="button" aria-label="Mở chi tiết">
+              <i class="fa-solid fa-chevron-down toggle-icon"></i>
+            </button>
+          </div>
+          <div id="a2-content" class="collapsible-content mt-3">
+            <div class="p-4 rounded-xl" style="border:1px solid var(--border);">
+              <p class="muted text-sm">
+                Chịu trách nhiệm UI/UX, responsive, tối ưu trải nghiệm. 
+                Phụ trách kiến trúc tổng thể, thiết kế UI, chức năng quiz/redeem, tích hợp ThemeManager.
+              </p>
+              <div class="divider"></div>
+              <ul class="list-disc pl-5 muted text-sm space-y-1">
+                <li>Xây dựng layout Tailwind</li>
+                <li>Thiết kế component tái sử dụng</li>
+                <li>Kiểm thử hiển thị đa thiết bị</li>
+                <li>Thiết kế & phát triển Frontend/Backend</li>
+                <li>Tối ưu hiệu năng, bảo mật cơ bản</li>
+                <li>Quản lý phát hành & tài liệu kỹ thuật</li>
+              </ul>
+              <div class="mt-3 text-sm">Liên hệ: <a class="link-slim" href="mailto:baovagiao@gmail.com">baovagiao@gmail.com</a></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Teacher -->
+        <article class="author-card sm:col-span-2 lg:col-span-3" tabindex="0" role="button" aria-expanded="false" aria-controls="t1-content" style="border:2px dashed var(--primary);">
+          <div class="author-head">
+            <div class="author-left">
+              <img src="assets/avatar/teacher-e.jpg" class="author-avatar" alt="Cô Nguyễn Thị E avatar"/>
+              <div>
+                <div class="author-title">Cô Nguyễn Thị E</div>
+                <div class="author-role">Giáo viên hướng dẫn</div>
+              </div>
+            </div>
+            <button class="btn secondary toggle-btn" type="button" aria-label="Mở chi tiết">
+              <i class="fa-solid fa-chevron-down toggle-icon"></i>
+            </button>
+          </div>
+          <div id="t1-content" class="collapsible-content mt-3">
+            <div class="p-4 rounded-xl" style="border:1px solid var(--border);">
+              <p class="muted text-sm">Định hướng nội dung, góp ý thiết kế, đảm bảo tính chính xác & học thuật.</p>
+              <div class="divider"></div>
+              <ul class="list-disc pl-5 muted text-sm space-y-1">
+                <li>Tư vấn nội dung về Huế</li>
+                <li>Rà soát tiêu chí học tập</li>
+                <li>Phản biện, đánh giá giai đoạn</li>
+              </ul>
+              <div class="mt-3 text-sm">Liên hệ: <a class="link-slim" href="mailto:demo@gmail.com">demo@gmail.com</a></div>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- Tech -->
+    <section class="card p-6">
+      <h3 class="text-xl font-bold mb-2">Công nghệ</h3>
+      <ul class="list-disc pl-6 space-y-1 muted">
+        <li>Frontend: HTML5, TailwindCSS, Font Awesome</li>
+        <li>Auth & Database: Firebase Authentication, Firestore</li>
+        <li>QR: qrcodejs (trang voucher)</li>
+        <li>Theme: CSS variables + ThemeManager (LocalStorage ⇄ Firestore)</li>
+      </ul>
+      <div class="divider"></div>
+      <div class="flex flex-wrap gap-2">
+        <button class="btn secondary" onclick="startApp()">Bắt đầu</button>
+        <a class="btn" href="quiz_ai_assistant_app.html">
+          <i class="fa-solid fa-circle-play"></i> Dùng thử ngay
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="max-w-6xl mx-auto px-4 pb-10 text-center muted">
+    <div class="mt-4">© 2025 Quiz & Assistant Web — Made in Huế</div>
+  </footer>
+
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+      authDomain: "loginandsignin-4932b.firebaseapp.com",
+      projectId: "loginandsignin-4932b",
+      storageBucket: "loginandsignin-4932b.appspot.com",
+      messagingSenderId: "863133586719",
+      appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db   = firebase.firestore();
+  </script>
+
+  <!-- ThemeManager (giống trang quiz) -->
+  <script>
+  (function ThemeManagerInit(){
+    var ThemeManager;
+    const LS_KEY='voucher-theme', root=document.documentElement;
+    let currentTheme=null, isSaving=false, saveTimer=null; const SAVE_DELAY=250;
+    const getSystemPref=()=> (window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
+    const hasFS = ()=> (typeof firebase!=='undefined' && typeof firebase.firestore==='function');
+
+    function dispatchChange(theme){ try{window.dispatchEvent(new CustomEvent('themechange',{detail:{theme}}))}catch{} }
+    function applyTheme(t){ currentTheme=t; t?root.setAttribute('data-theme',t):root.removeAttribute('data-theme'); dispatchChange(t); }
+    function saveToLocal(t){ t?localStorage.setItem(LS_KEY,t):localStorage.removeItem(LS_KEY); }
+
+    function waitForFb(cb){
+      try{ if(firebase?.apps?.length){ cb(); return; } }catch{}
+      const t=setInterval(()=>{ try{ if(firebase?.apps?.length){ clearInterval(t); cb(); } }catch{} },50);
+      setTimeout(()=>clearInterval(t),10000);
+    }
+    async function _saveToFS(t){
+      if(!hasFS()) return; const u=firebase.auth().currentUser; if(!u) return;
+      await firebase.firestore().collection('users').doc(u.uid).set({ prefs:{ theme:t, updatedAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge:true });
+    }
+    function saveFS(t){
+      if(isSaving) return; clearTimeout(saveTimer);
+      saveTimer=setTimeout(async()=>{ try{ isSaving=true; await _saveToFS(t);}catch(e){console.warn('[TM] save fail:',e)}finally{isSaving=false} }, SAVE_DELAY);
+    }
+
+    (function(){ const ls=localStorage.getItem(LS_KEY); applyTheme(ls||getSystemPref()); })();
+
+    let mql=null;
+    function attachSys(){
+      if(!window.matchMedia) return;
+      mql=window.matchMedia('(prefers-color-scheme: light)');
+      const onC=()=>{ const u=(firebase?.auth?.().currentUser); if(u) return; const sys=getSystemPref(); applyTheme(sys); saveToLocal(sys); };
+      try{ mql.addEventListener?mql.addEventListener('change',onC):mql.addListener(onC);}catch{}
+    }
+    function detachSys(){
+      if(!mql) return;
+      try{ mql.removeEventListener?mql.removeEventListener('change',()=>{}):mql.removeListener(()=>{});}catch{}
+      mql=null;
+    }
+    attachSys();
+
+    function bindToggle(){
+      const b=document.getElementById('themeBtn');
+      if(!b || b.__tmBound) return;
+      b.__tmBound=true;
+      b.addEventListener('click', ()=> window.ThemeManager?.toggle());
+    }
+    bindToggle();
+    const mo=new MutationObserver(()=>bindToggle());
+    mo.observe(document.documentElement,{childList:true,subtree:true});
+
+    if(!document.getElementById('themeBtn')){
+      const auto=document.createElement('button');
+      auto.id='themeBtn'; auto.title='Đổi giao diện';
+      auto.className='btn secondary';
+      auto.innerHTML='<img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">';
+      auto.style.cssText='position:fixed;right:12px;bottom:12px;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:12px;padding:8px 12px;z-index:9999;box-shadow:0 6px 18px rgba(0,0,0,.15);';
+      document.body.appendChild(auto); bindToggle();
+    }
+
+    waitForFb(()=>{
+      try{
+        firebase.auth().onAuthStateChanged(async u=>{
+          if(!u){ attachSys(); const ls=localStorage.getItem(LS_KEY); applyTheme(ls||getSystemPref()); return; }
+          detachSys();
+          const now=document.documentElement.getAttribute('data-theme')||getSystemPref();
+          applyTheme(now); saveToLocal(now); saveFS(now);
+        });
+      }catch(e){ console.warn('[TM] auth watcher error:', e); }
+    });
+
+    window.addEventListener('storage', e=>{
+      if(e.key!==LS_KEY) return;
+      const next=e.newValue || getSystemPref();
+      if(next!==currentTheme) applyTheme(next);
+    });
+
+    ThemeManager = {
+      getTheme(){ return currentTheme || document.documentElement.getAttribute('data-theme') || getSystemPref(); },
+      async setTheme(t){ if(t!=='light'&&t!=='dark') return; applyTheme(t); saveToLocal(t); if(hasFS() && firebase.auth().currentUser) saveFS(t); },
+      async toggle(){ const cur=this.getTheme(); const next=(cur==='dark'?'light':'dark'); await this.setTheme(next); }
+    };
+    try{ window.ThemeManager = ThemeManager; }catch{}
+  })();
+  </script>
+
+  <!-- Đồng bộ icon theme + favicon -->
+  <script>
+    const faviconEl = document.getElementById('favicon');
+    const themeIcon = document.getElementById('themeIcon');
+    function applyThemeAssets(mode){
+      if (themeIcon) {
+        themeIcon.src = mode === 'dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
+        themeIcon.alt = mode === 'dark' ? 'theme-dark' : 'theme-light';
+      }
+      if (faviconEl) {
+        faviconEl.href = mode === 'dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
+        const bust='?v='+Date.now();
+        faviconEl.href = faviconEl.href.split('?')[0] + bust;
+      }
+    }
+    (function initIcons(){
+      const mode = (window.ThemeManager?.getTheme && window.ThemeManager.getTheme()) || 'dark';
+      applyThemeAssets(mode);
+    })();
+    window.addEventListener('themechange', (e)=>{
+      const mode = e?.detail?.theme || 'dark';
+      applyThemeAssets(mode);
+    });
+  </script>
+
+  <!-- Logic điều hướng "Bắt đầu" -->
+  <script>
+    function startApp() {
+      const user = firebase.auth().currentUser;
+      if (user) window.location.href = "quiz_ai_assistant_app.html";
+      else window.location.href = "signup.html";
+    }
+  </script>
+
+  <!-- Expand cards + Avatar local cho user -->
+  <script>
+    function setExpanded(card, expanded){
+      card.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      const content = card.querySelector('.collapsible-content');
+      if (!content) return;
+      if (expanded) {
+        content.style.maxHeight = content.scrollHeight + 'px';
+        content.style.opacity = '1';
+      } else {
+        content.style.maxHeight = '0px';
+        content.style.opacity = '0';
+      }
+    }
+    function toggleCard(card){
+      const isOpen = card.getAttribute('aria-expanded') === 'true';
+      setExpanded(card, !isOpen);
+    }
+    function bindCard(card){
+      card.querySelector('.toggle-btn')?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleCard(card); });
+      card.addEventListener('click', (e)=>{
+        if (e.target.closest('a')) return;
+        if (e.target.closest('.toggle-btn')) return;
+        toggleCard(card);
+      });
+      card.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCard(card); }
+      });
+      setExpanded(card, false);
+    }
+    document.addEventListener('DOMContentLoaded', ()=> {
+      document.querySelectorAll('.author-card').forEach(bindCard);
+    });
+    window.addEventListener('resize', ()=> {
+      document.querySelectorAll('.author-card[aria-expanded="true"] .collapsible-content')
+        .forEach(el=> el.style.maxHeight = el.scrollHeight + 'px');
+    });
+
+    // === Avatar local cho user đăng nhập ===
+    // Ưu tiên: users/{uid}.profile.avatarPath (ví dụ 'assets/avatar/user1.jpg')
+    // -> nếu không có dùng user.photoURL
+    // -> nếu không có dùng 'assets/avatar/default.png'
+    firebase.auth().onAuthStateChanged(async (user)=>{
+      const status = document.getElementById('authStatus');
+      const chip   = document.getElementById('userChip');
+      const loginL = document.getElementById('loginLink');
+      const nameEl = document.getElementById('userName');
+      const picEl  = document.getElementById('userAvatar');
+
+      if (!user) {
+        status.innerHTML = 'Bạn có thể <a class="link-slim" href="login.html">đăng nhập</a> để đồng bộ giao diện.';
+        chip.classList.add('hidden');
+        loginL?.classList.remove('hidden');
+        picEl.src = 'assets/avatar/default.png';
+        return;
+      }
+
+      // đã đăng nhập
+      loginL?.classList.add('hidden');
+      status.textContent = 'Đã đăng nhập.';
+      nameEl.textContent = user.displayName || (user.email ? user.email.split('@')[0] : user.uid.slice(0,6));
+      chip.classList.remove('hidden');
+
+      let avatarPath = 'assets/avatar/default.png';
+      try {
+        const snap = await firebase.firestore().collection('users').doc(user.uid).get();
+        if (snap.exists) {
+          const data = snap.data() || {};
+          const path = data?.profile?.avatarPath;
+          if (typeof path === 'string' && path.trim()) {
+            avatarPath = path; // dùng ảnh local do bạn chỉ định
+          } else if (user.photoURL) {
+            avatarPath = user.photoURL; // fallback ảnh từ provider (nếu có)
+          }
+        } else if (user.photoURL) {
+          avatarPath = user.photoURL;
+        }
+      } catch (e) {
+        console.warn('Không đọc được avatarPath:', e);
+        if (user.photoURL) avatarPath = user.photoURL;
+      }
+      picEl.src = avatarPath;
+      picEl.onerror = ()=> { picEl.src = 'assets/avatar/default.png'; };
+    });
+  </script>
+
+  <!-- ===== Username Validator (ASCII-only) ===== -->
+  <script>
+    (function UsernameValidatorInit(){
+      const NO_UNICODE_RE = /^[\x20-\x7E]+$/;
+      const USERNAME_ASCII_RE = /^(?!.*\.\.)(?!.*__)(?!.*--)[A-Za-z0-9](?:[A-Za-z0-9._-]{0,28}[A-Za-z0-9])$/;
+
+      function validateUsernameValue(val){
+        const s = (val||"").trim();
+        if(!NO_UNICODE_RE.test(s)) {
+          return { ok:false, msg:"Chỉ cho phép ASCII, không ký tự Unicode." };
+        }
+        if(!USERNAME_ASCII_RE.test(s)) {
+          return { ok:false, msg:"2–30 ký tự: A–Z a–z 0–9 . _ -, không đầu/cuối bằng . _ -, không có .. __ --" };
+        }
+        return { ok:true, msg:"" };
+      }
+
+      function attach(el){
+        if(!el || el._usernameValidatorBound) return;
+        el._usernameValidatorBound = true;
+        el.setAttribute("autocomplete","username");
+        el.setAttribute("spellcheck","false");
+        el.setAttribute("autocapitalize","off");
+        el.setAttribute("minlength","2");
+        el.setAttribute("maxlength","30");
+        el.addEventListener("input", () => {
+          const {ok, msg} = validateUsernameValue(el.value);
+          el.setCustomValidity(ok ? "" : msg);
+          el.reportValidity();
+        });
+        el.form?.addEventListener("submit", (e) => {
+          const {ok, msg} = validateUsernameValue(el.value);
+          if(!ok){
+            e.preventDefault();
+            el.setCustomValidity(msg);
+            el.reportValidity();
+            el.focus();
+          } else {
+            el.setCustomValidity("");
+          }
+        });
+      }
+
+      document.querySelectorAll('input[name="username"], [data-username]').forEach(attach);
+      const obs = new MutationObserver((mutations)=>{
+        mutations.forEach(m=>{
+          m.addedNodes.forEach(node=>{
+            if(!(node instanceof Element)) return;
+            if(node.matches?.('input[name="username"], [data-username]')) attach(node);
+            node.querySelectorAll?.('input[name="username"], [data-username]').forEach(attach);
+          });
+        });
+      });
+      obs.observe(document.documentElement, {childList:true, subtree:true});
+
+      window.UsernameValidator = {
+        validateRaw: (val)=> validateUsernameValue(val),
+        regex: { NO_UNICODE_RE, USERNAME_ASCII_RE },
+        attach
+      };
+    })();
+  </script>
+</body>
+</html>
