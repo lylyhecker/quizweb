@@ -91,6 +91,13 @@
         <div class="row"><span class="muted">Còn lại</span><span id="remaining">—</span></div>
       </div>
 
+      <!-- QR code -->
+      <div class="mt-6 text-center">
+        <div class="muted mb-2">Mã QR</div>
+        <div id="qrcode" class="inline-block p-3 border rounded-lg" style="background:var(--card); border-color:var(--border)"></div>
+        <div class="mt-2 text-xs muted">Quét mã để xác thực voucher</div>
+      </div>
+
       <div class="mt-6 row">
         <button id="backBtn" class="btn">Quay lại đổi quà</button>
         <button id="useBtn" class="btn primary">Đánh dấu đã dùng</button>
@@ -108,6 +115,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <script>
     // Firebase init (đồng bộ với các trang khác)
     const firebaseConfig = {
@@ -123,7 +133,7 @@
     const db   = firebase.firestore();
   </script>
 
-  <!-- ThemeManager (giống các trang khác để ĐỒNG BỘ theme) -->
+  <!-- ThemeManager (đồng bộ theme) -->
   <script>
   (function ThemeManagerInit(){
     var ThemeManager;
@@ -227,6 +237,11 @@
         const bust='?v='+Date.now();
         faviconEl.href = faviconEl.href.split('?')[0] + bust;
       }
+
+      // Đổi màu QR khi theme đổi (render lại)
+      if (window.__lastVoucherId) {
+        renderQRCode(window.__lastVoucherId);
+      }
     }
 
     // Lần đầu
@@ -242,7 +257,7 @@
     });
   </script>
 
-  <!-- Voucher logic -->
+  <!-- Voucher + QR logic -->
   <script>
     const qs    = new URLSearchParams(location.search);
     const idQ   = qs.get('id');
@@ -321,6 +336,27 @@
       return data;
     }
 
+    // ===== QR code =====
+    function renderQRCode(voucherCode){
+      const qrEl = document.getElementById('qrcode');
+      if (!qrEl) return;
+      qrEl.innerHTML = '';
+      // Lấy màu hiện tại từ CSS variables để khớp theme
+      const styles = getComputedStyle(document.documentElement);
+      const colorDark  = styles.getPropertyValue('--text').trim() || '#000000';
+      const colorLight = styles.getPropertyValue('--card').trim() || '#ffffff';
+
+      new QRCode(qrEl, {
+        text: voucherCode,
+        width: 180,
+        height: 180,
+        colorDark: colorDark,
+        colorLight: colorLight,
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+
+    // Nút "đã dùng"
     useBtn.onclick = async ()=>{
       try{
         const id = idQ || voucherIdEl.textContent;
@@ -330,6 +366,7 @@
       }catch(e){ alert('Không thể cập nhật trạng thái: '+e.message); }
     };
 
+    // Load voucher
     auth.onAuthStateChanged(async user=>{
       if(!user){ location.href='login.html'; return; }
       try{
@@ -350,6 +387,10 @@
         issuedAtEl.textContent = issued ? issued.toLocaleString('vi-VN') : '—';
         expiresAtEl.textContent= expires ? expires.toLocaleString('vi-VN') : '—';
         setStatusBadge(status);
+
+        // Lưu id để re-render QR khi đổi theme
+        window.__lastVoucherId = id;
+        renderQRCode(id);
 
         if (expires) startCountdown(expires.getTime());
         else remainingEl.textContent = '—';
