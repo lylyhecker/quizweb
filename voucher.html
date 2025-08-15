@@ -1,447 +1,831 @@
 <!DOCTYPE html>
+
 <html lang="vi">
+
 <head>
+
   <meta charset="UTF-8"/>
+
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
+
   <title>Voucher</title>
 
-  <!-- Favicon theo theme (giống redeem) -->
-  <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg" />
+
+
+  <!-- Favicons theo theme (giống redeem) -->
+
+  <link id="faviconLight" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+
+  <link id="faviconDark"  rel="icon" type="image/svg+xml" href="assets/favicon-dark.svg"  media="(prefers-color-scheme: dark)">
+
+  <link rel="alternate icon" href="assets/favicon-32.png" sizes="32x32">
+
+
 
   <!-- Tailwind (layout/spacing) -->
+
   <script src="https://cdn.tailwindcss.com"></script>
 
+
+
   <style>
+
     :root{
+
       --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
+
       --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444;
+
       --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25);
+
     }
+
     @media (prefers-color-scheme: light){
+
       :root{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+
     }
+
     :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+
     :root[data-theme="dark"]{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
 
+
+
     html,body{height:100%}
+
     body{
+
       margin:0; color:var(--text);
+
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, Arial;
+
       background:
+
         radial-gradient(1200px 600px at 10% -10%, rgba(122,162,255,.18), transparent 60%),
+
         radial-gradient(900px 500px at 110% 10%, rgba(125,211,252,.16), transparent 60%),
+
         var(--bg);
+
     }
+
     header,footer{ background: var(--card); border-bottom:1px solid var(--border) }
+
     footer{ border-top:1px solid var(--border); border-bottom:none }
+
     .card{ background: var(--card); border:1px solid var(--border); border-radius:18px; box-shadow: var(--shadow); }
+
     .icon{ width:18px; height:18px; object-fit:contain }
+
     .btn{
+
       display:inline-flex; align-items:center; gap:8px;
+
       background: transparent; color: var(--text);
+
       border:1px solid var(--border); border-radius:12px;
+
       padding:8px 12px; cursor:pointer;
+
     }
+
     .btn:hover{ background: var(--bg-soft) }
+
     .btn.primary{ border:none; background: var(--primary); color:#fff; box-shadow: 0 6px 18px rgba(37,99,235,.25); }
+
     .btn.primary:hover{ background: var(--primary-strong) }
+
     .badge{ border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-size:12px; color:var(--muted); background: var(--bg-soft) }
 
+
+
     .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+
     .status{font-weight:800}
+
     .status.active{color:var(--ok)}
+
     .status.expired{color:var(--err)}
+
     .status.used{color:#f59e0b}
+
     .muted{color:var(--muted)}
+
     .big{font-size:28px;font-weight:800}
+
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
 
-    /* Khối QR phải */
+
+
+    /* Khối QR phải: ô chữ nhật bo góc bên dưới QR */
+
     .qr-card{
+
       border:1px solid var(--border);
+
       border-radius:16px;
+
       background: var(--bg-soft);
+
       box-shadow: var(--shadow);
+
     }
+
     .qr-note{
+
       border-top:1px dashed var(--border);
+
       border-radius:0 0 16px 16px;
+
       padding:10px 12px;
+
       font-size:12px;
+
       color:var(--muted);
+
       background: var(--card);
+
     }
+
+
 
     /* Toast (nâng cấp) */
+
     .toast{ position:fixed; top:16px; right:16px; max-width:320px; z-index:60; background:var(--card); color:var(--text); border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); opacity:0; transform: translateY(-6px); transition: all .25s ease }
+
     .toast.show{ opacity:1; transform: none }
+
     .toast.success{ border-left-color:#22c55e }
+
     .toast.error{ border-left-color:#ef4444 }
+
     .toast.info{ border-left-color:var(--primary) }
+
   </style>
+
 </head>
+
 <body>
+
   <!-- Header -->
+
   <header class="shadow">
+
     <div class="max-w-6xl mx-auto px-4 py-3 row">
+
       <div class="row" style="gap:10px">
+
         <img src="assets/logo.png" class="w-9 h-9 rounded-lg object-cover" alt="logo">
+
         <strong>Voucher</strong>
+
       </div>
+
       <nav class="row" style="gap:8px">
+
         <a class="btn" href="library.html"><img src="assets/book.svg" class="icon" alt="">Thư viện</a>
+
         <a class="btn" href="redeem.html"><img src="assets/gift.svg" class="icon" alt="">Đổi quà</a>
+
         <button id="themeBtn" class="btn" title="Đổi giao diện">
+
           <img id="themeIcon" class="icon" alt="theme">
+
         </button>
+
       </nav>
+
     </div>
+
   </header>
 
+
+
   <!-- Main -->
+
   <main class="max-w-6xl mx-auto px-4 py-6">
+
     <section class="card p-6">
+
       <div class="row">
+
         <h1 class="big">Chi tiết voucher</h1>
+
         <span id="statusBadge" class="badge status">Đang tải...</span>
+
       </div>
+
+
 
       <!-- Lưới 2 cột: trái = info; phải = QR + ô bo góc -->
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+
         <!-- LEFT: Thông tin -->
+
         <div>
+
           <div class="row"><span class="muted">Món quà</span><strong id="giftName">—</strong></div>
+
           <div class="row"><span class="muted">Mã voucher</span><span id="voucherId" class="mono">—</span></div>
+
           <div class="row"><span class="muted">Ngày cấp</span><span id="issuedAt">—</span></div>
+
           <div class="row"><span class="muted">Hạn dùng</span><span id="expiresAt">—</span></div>
+
           <div class="row"><span class="muted">Còn lại</span><span id="remaining">—</span></div>
 
+
+
           <div class="mt-6 flex flex-wrap gap-3">
+
             <button id="backBtn" class="btn">Quay lại đổi quà</button>
+
             <button id="useBtn" class="btn primary">Đánh dấu đã dùng</button>
+
           </div>
+
         </div>
+
+
 
         <!-- RIGHT: QR + ô chữ nhật bo góc phía dưới -->
+
         <div class="qr-card p-4">
+
           <div class="text-center">
+
             <div class="muted mb-2">Mã QR</div>
+
             <div id="qrcode" class="inline-block p-3 border rounded-lg"
+
                  style="background:var(--card); border-color:var(--border)"></div>
+
           </div>
+
+          <!-- Ô chữ nhật bo góc dưới mã -->
+
           <div class="qr-note mt-4">
+
             Dùng app đối tác để quét & xác thực. Nhân viên có thể nhập mã thủ công nếu cần.
+
           </div>
+
         </div>
+
       </div>
+
     </section>
+
   </main>
 
+
+
   <footer>
+
     <div class="max-w-6xl mx-auto px-4 py-4 text-center text-sm muted">
+
       © 2025 Quiz & Assistant — Design by Mr.Hecker
+
     </div>
+
   </footer>
 
+
+
   <!-- Toast -->
+
   <div id="toast" class="toast">
+
     <strong id="toast-title"></strong>
+
     <div id="toast-msg" class="mt-1 text-sm"></div>
+
   </div>
 
+
+
   <!-- Firebase compat v10 -->
+
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
   <!-- QRCode.js -->
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- ===== ThemeManager (y như redeem) ===== -->
+
+
+  <!-- ===== Theme như redeem (đồng bộ đơn giản bằng localStorage + system) ===== -->
+
   <script>
-    (function(){
-      const LS_KEY = 'voucher-theme';
-      const root = document.documentElement;
-      let currentTheme = null;
 
-      const getSystemPref = () =>
-        (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    const root = document.documentElement;
 
-      function applyTheme(t){
-        currentTheme = t;
-        root.setAttribute('data-theme', t);
-      }
-      function saveToLocal(t){ localStorage.setItem(LS_KEY, t); }
+    const LS_KEY = 'voucher-theme';
 
-      // Khởi tạo theme ban đầu
-      (function init(){
-        const ls = localStorage.getItem(LS_KEY);
-        applyTheme(ls || getSystemPref());
-        applyAssets(getTheme());
-      })();
+    const saved = localStorage.getItem(LS_KEY);
 
-      function getTheme(){
-        return currentTheme || root.getAttribute('data-theme') || getSystemPref();
-      }
-      function setTheme(t){
-        if(t!=='light' && t!=='dark') return;
-        applyTheme(t); saveToLocal(t); applyAssets(t);
-        // phát sự kiện để các phần khác (QR) biết
-        const ev = new CustomEvent('themechange', { detail: { theme: t } });
-        window.dispatchEvent(ev);
-      }
-      function toggle(){
-        const cur = getTheme();
-        setTheme(cur === 'dark' ? 'light' : 'dark');
-      }
+    if (saved) root.setAttribute('data-theme', saved);
 
-      // Nút bấm
-      document.getElementById('themeBtn')?.addEventListener('click', ()=> toggle());
 
-      // Cập nhật icon & favicon & QR theo theme
-      function applyAssets(mode){
-        const icon = document.getElementById('themeIcon');
-        if (icon) {
-          icon.src = mode === 'dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
-          icon.alt = mode === 'dark' ? 'Dark' : 'Light';
-        }
-        const fav = document.getElementById('favicon');
-        if (fav){
-          fav.href = mode === 'dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
-          // bust cache favicon
-          fav.href = fav.href.split('?')[0] + '?v=' + Date.now();
-        }
-        // re-render QR để bắt màu
-        if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
+
+    const themeBtn  = document.getElementById('themeBtn');
+
+    const themeIcon = document.getElementById('themeIcon');
+
+    const favLight  = document.getElementById('faviconLight');
+
+    const favDark   = document.getElementById('faviconDark');
+
+
+
+    const sysLight = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+
+    const curTheme = () => {
+
+      const t = root.getAttribute('data-theme');
+
+      return (t==='light'||t==='dark') ? t : (sysLight()? 'light' : 'dark');
+
+    };
+
+
+
+    function applyThemeUI(){
+
+      const t = curTheme();
+
+      // Đổi icon nút
+
+      if (themeIcon){
+
+        themeIcon.src = t==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
+
+        themeIcon.alt = t==='dark' ? 'Dark' : 'Light';
+
       }
 
-      // Nếu hệ thống đổi theme và user chưa chọn tay -> cập nhật UI
-      if (window.matchMedia){
-        const mq = window.matchMedia('(prefers-color-scheme: dark)');
-        mq.addEventListener('change', () => {
-          if (!localStorage.getItem(LS_KEY)) {
-            applyTheme(getSystemPref());
-            applyAssets(getTheme());
-          }
-        });
+      // Bật đúng favicon
+
+      if (favLight && favDark){
+
+        favLight.media = t==='light'?'all':'(prefers-color-scheme: light)';
+
+        favDark.media  = t==='dark'?'all':'(prefers-color-scheme: dark)';
+
       }
 
-      // Lộ ra toàn cục giống redeem
-      window.ThemeManager = { getTheme, setTheme, toggle };
-      window.addEventListener('themechange', e => applyAssets(e.detail.theme));
-    })();
+      // Re-render QR để đổi màu theo theme
+
+      if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
+
+    }
+
+    applyThemeUI();
+
+
+
+    themeBtn.addEventListener('click', () => {
+
+      const next = curTheme()==='dark' ? 'light' : 'dark';
+
+      root.setAttribute('data-theme', next);
+
+      localStorage.setItem(LS_KEY, next);
+
+      applyThemeUI();
+
+      showToast('Đã đổi giao diện', `Chế độ hiện tại: ${next==='dark'?'Tối':'Sáng'}`, 'info');
+
+    });
+
+
+
+    if (window.matchMedia){
+
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+
+        // chỉ cập nhật nếu người dùng chưa chọn tay (không có LS_KEY)
+
+        if (!localStorage.getItem(LS_KEY)) applyThemeUI();
+
+      });
+
+    }
+
   </script>
 
-  <!-- ===== Toast & Confirm ===== -->
+
+
+  <!-- ===== Toast & Confirm nâng cấp ===== -->
+
   <script>
+
     function showToast(title, msg, type='info', after=null){
+
       const t = document.getElementById('toast');
+
       const tt= document.getElementById('toast-title');
+
       const tm= document.getElementById('toast-msg');
+
       t.className = 'toast ' + type;
+
       tt.textContent = title;
+
       tm.textContent = msg;
+
       requestAnimationFrame(()=> t.classList.add('show'));
+
       setTimeout(()=> {
+
         t.classList.remove('show');
+
         if (after) after();
+
       }, 2500);
+
     }
+
+
 
     function showConfirm(title, message, okText='OK'){
+
       return new Promise(res=>{
+
         const mask = document.createElement('div');
+
         mask.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:70';
+
         const card = document.createElement('div');
+
         card.className = 'card';
+
         card.style.cssText = 'max-width:420px;padding:16px 18px';
+
         card.innerHTML = `
+
           <div class="text-lg font-bold mb-1">${title}</div>
+
           <div class="text-sm" style="opacity:.9">${message}</div>
+
           <div class="mt-4 flex justify-end gap-2">
+
             <button class="btn" id="dlg-cancel">Huỷ</button>
+
             <button class="btn primary" id="dlg-ok">${okText}</button>
+
           </div>
+
         `;
+
         mask.appendChild(card); document.body.appendChild(mask);
+
         card.querySelector('#dlg-cancel').onclick = ()=>{ mask.remove(); res(false); };
+
         card.querySelector('#dlg-ok').onclick     = ()=>{ mask.remove(); res(true);  };
+
       });
+
     }
+
   </script>
 
+
+
   <!-- ===== App logic ===== -->
+
   <script>
+
     // Firebase init
+
     const firebaseConfig = {
+
       apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+
       authDomain: "loginandsignin-4932b.firebaseapp.com",
+
       projectId: "loginandsignin-4932b",
+
       storageBucket: "loginandsignin-4932b.appspot.com",
+
       messagingSenderId: "863133586719",
+
       appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+
     };
+
     firebase.initializeApp(firebaseConfig);
+
     const auth = firebase.auth();
+
     const db   = firebase.firestore();
 
+
+
     const qs    = new URLSearchParams(location.search);
+
     const idQ   = qs.get('id');
+
     const $     = (id)=> document.getElementById(id);
 
+
+
     const giftNameEl = $('giftName');
+
     const voucherIdEl= $('voucherId');
+
     const issuedAtEl = $('issuedAt');
+
     const expiresAtEl= $('expiresAt');
+
     const remainingEl= $('remaining');
+
     const statusBadge= $('statusBadge');
+
     const backBtn    = $('backBtn');
+
     const useBtn     = $('useBtn');
+
+
 
     backBtn.onclick = ()=> history.length>1 ? history.back() : location.href='redeem.html';
 
+
+
     // Đếm ngược
+
     let timer = null;
+
     function startCountdown(expireMs){
+
       function tick(){
+
         const now = Date.now();
+
         let diff = expireMs - now;
+
         if (diff <= 0){
+
           remainingEl.textContent = 'Đã hết hạn';
+
           clearInterval(timer); timer = null;
+
           return;
+
         }
+
         const d = Math.floor(diff / (24*60*60*1000)); diff %= 24*60*60*1000;
+
         const h = Math.floor(diff / (60*60*1000));    diff %= 60*60*1000;
+
         const m = Math.floor(diff / (60*1000));       diff %= 60*1000;
+
         const s = Math.floor(diff / 1000);
+
         remainingEl.textContent = `${d} ngày ${h} giờ ${m} phút ${s} giây`;
+
       }
+
       tick();
+
       timer = setInterval(tick, 1000);
+
     }
+
+
 
     function setStatusBadge(status){
+
       statusBadge.classList.remove('active','expired','used');
+
       statusBadge.textContent = status;
+
       statusBadge.classList.add(status);
+
     }
+
+
 
     async function loadVoucherDoc(uid){
+
       if (idQ){
+
         const doc = await db.collection('vouchers').doc(idQ).get();
+
         if (doc.exists) return { id: idQ, data: doc.data() };
+
       }
+
       const u = await db.collection('users').doc(uid).get();
+
       const vid = u.exists ? (u.data().last_voucher_id || null) : null;
+
       if (!vid) return null;
+
       const doc = await db.collection('vouchers').doc(vid).get();
+
       if (!doc.exists) return null;
+
       return { id: vid, data: doc.data() };
+
     }
+
+
 
     // Bổ sung expiresAt nếu DB cũ chưa có (issuedAt + validDays)
+
     async function ensureExpiresField(vId, data){
+
       if (data.expiresAt) return data;
+
       const validDays = Number(data.validDays || 7);
+
       const issued = data.issuedAt && data.issuedAt.toDate ? data.issuedAt.toDate().getTime() : Date.now();
+
       const expMs = issued + validDays*24*60*60*1000;
+
       const expiresAt = firebase.firestore.Timestamp.fromDate(new Date(expMs));
+
       await db.collection('vouchers').doc(vId).set({ expiresAt }, { merge: true });
+
       return { ...data, expiresAt };
+
     }
+
+
 
     // Nếu quá hạn mà status vẫn active -> expired
+
     async function ensureStatusUpToDate(vId, data){
+
       const exp = data.expiresAt && data.expiresAt.toDate ? data.expiresAt.toDate().getTime() : null;
+
       if (!exp) return data;
+
       if (Date.now() > exp && data.status === 'active'){
+
         await db.collection('vouchers').doc(vId).set({ status: 'expired' }, { merge: true });
+
         return { ...data, status: 'expired' };
+
       }
+
       return data;
+
     }
+
+
 
     // ===== QR code =====
+
     function renderQRCode(voucherCode){
+
       const qrEl = document.getElementById('qrcode');
+
       if (!qrEl) return;
+
       qrEl.innerHTML = '';
+
       const styles = getComputedStyle(document.documentElement);
+
       const colorDark  = styles.getPropertyValue('--text').trim() || '#000000';
+
       const colorLight = styles.getPropertyValue('--card').trim() || '#ffffff';
 
+
+
       new QRCode(qrEl, {
+
         text: voucherCode,
+
         width: 180, height: 180,
+
         colorDark, colorLight,
+
         correctLevel: QRCode.CorrectLevel.H
+
       });
+
     }
 
+
+
     // Đánh dấu đã dùng (có confirm + toast)
-    document.getElementById('useBtn').onclick = async ()=>{
+
+    useBtn.onclick = async ()=>{
+
       const id = idQ || voucherIdEl.textContent;
+
       if(!id) return;
+
       const ok = await showConfirm('Xác nhận', 'Bạn muốn đánh dấu voucher này là ĐÃ DÙNG?', 'Xác nhận');
+
       if (!ok) return;
+
       try{
+
         await db.collection('vouchers').doc(id).set({ status: 'used' }, { merge: true });
+
         setStatusBadge('used');
+
         showToast('Thành công', 'Đã đánh dấu voucher là ĐÃ DÙNG.', 'success');
+
       }catch(e){
+
         showToast('Lỗi', 'Không thể cập nhật trạng thái: '+e.message, 'error');
+
       }
+
     };
 
+
+
     // Load voucher
+
     auth.onAuthStateChanged(async user=>{
+
       if(!user){
+
         showToast('Cần đăng nhập', 'Bạn sẽ được chuyển tới trang đăng nhập...', 'info', ()=> location.href='login.html');
+
         return;
+
       }
+
       try{
+
         const res = await loadVoucherDoc(user.uid);
+
         if(!res){ showToast('Không tìm thấy', 'Voucher không tồn tại hoặc đã xoá.', 'error'); return; }
 
+
+
         const { id, data } = res;
+
         const d1 = await ensureExpiresField(id, data);
+
         const d2 = await ensureStatusUpToDate(id, d1);
 
+
+
         const giftName = d2.giftName || '—';
+
         const issued   = d2.issuedAt && d2.issuedAt.toDate ? d2.issuedAt.toDate() : null;
+
         const expires  = d2.expiresAt && d2.expiresAt.toDate ? d2.expiresAt.toDate() : null;
+
         const status   = d2.status || 'active';
 
+
+
         giftNameEl.textContent = giftName;
+
         voucherIdEl.textContent= id;
+
         issuedAtEl.textContent = issued ? issued.toLocaleString('vi-VN') : '—';
+
         expiresAtEl.textContent= expires ? expires.toLocaleString('vi-VN') : '—';
+
         setStatusBadge(status);
 
+
+
         // Lưu id để re-render QR khi đổi theme
+
         window.__lastVoucherId = id;
+
         renderQRCode(id);
 
+
+
         if (expires) startCountdown(expires.getTime());
+
         else remainingEl.textContent = '—';
 
+
+
         // Thông báo nho nhỏ khi vào trang
+
         showToast('Tải thành công', 'Voucher đã sẵn sàng để quét.', 'success');
+
       }catch(e){
+
         console.error(e);
+
         showToast('Lỗi tải', e.message || 'Không thể tải voucher.', 'error');
+
       }
+
     });
 
-    // Re-render QR khi nhận sự kiện themechange (từ ThemeManager)
-    window.addEventListener('themechange', () => {
-      if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
-    });
-
-    // Nút quay lại
-    document.getElementById('backBtn').onclick = ()=> history.length>1 ? history.back() : location.href='redeem.html';
   </script>
+
 </body>
+
 </html>
-
-
