@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Voucher</title>
 
-  <!-- Favicon (JS sẽ chuyển giữa light/dark) -->
-  <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg"/>
+  <!-- Favicons theo theme (giống redeem) -->
+  <link id="faviconLight" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+  <link id="faviconDark"  rel="icon" type="image/svg+xml" href="assets/favicon-dark.svg"  media="(prefers-color-scheme: dark)">
+  <link rel="alternate icon" href="assets/favicon-32.png" sizes="32x32">
 
   <!-- Tailwind (layout/spacing) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -71,6 +73,13 @@
       color:var(--muted);
       background: var(--card);
     }
+
+    /* Toast (nâng cấp) */
+    .toast{ position:fixed; top:16px; right:16px; max-width:320px; z-index:60; background:var(--card); color:var(--text); border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); opacity:0; transform: translateY(-6px); transition: all .25s ease }
+    .toast.show{ opacity:1; transform: none }
+    .toast.success{ border-left-color:#22c55e }
+    .toast.error{ border-left-color:#ef4444 }
+    .toast.info{ border-left-color:var(--primary) }
   </style>
 </head>
 <body>
@@ -124,7 +133,7 @@
           </div>
           <!-- Ô chữ nhật bo góc dưới mã -->
           <div class="qr-note mt-4">
-            Dùng ứng dụng đối tác để quét & xác thực voucher. Nhân viên có thể nhập mã thủ công nếu cần.
+            Dùng app đối tác để quét & xác thực. Nhân viên có thể nhập mã thủ công nếu cần.
           </div>
         </div>
       </div>
@@ -137,6 +146,12 @@
     </div>
   </footer>
 
+  <!-- Toast -->
+  <div id="toast" class="toast">
+    <strong id="toast-title"></strong>
+    <div id="toast-msg" class="mt-1 text-sm"></div>
+  </div>
+
   <!-- Firebase compat v10 -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -144,6 +159,96 @@
   <!-- QRCode.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
+  <!-- ===== Theme như redeem (đồng bộ đơn giản bằng localStorage + system) ===== -->
+  <script>
+    const root = document.documentElement;
+    const LS_KEY = 'voucher-theme';
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) root.setAttribute('data-theme', saved);
+
+    const themeBtn  = document.getElementById('themeBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const favLight  = document.getElementById('faviconLight');
+    const favDark   = document.getElementById('faviconDark');
+
+    const sysLight = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    const curTheme = () => {
+      const t = root.getAttribute('data-theme');
+      return (t==='light'||t==='dark') ? t : (sysLight()? 'light' : 'dark');
+    };
+
+    function applyThemeUI(){
+      const t = curTheme();
+      // Đổi icon nút
+      if (themeIcon){
+        themeIcon.src = t==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
+        themeIcon.alt = t==='dark' ? 'Dark' : 'Light';
+      }
+      // Bật đúng favicon
+      if (favLight && favDark){
+        favLight.media = t==='light'?'all':'(prefers-color-scheme: light)';
+        favDark.media  = t==='dark'?'all':'(prefers-color-scheme: dark)';
+      }
+      // Re-render QR để đổi màu theo theme
+      if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
+    }
+    applyThemeUI();
+
+    themeBtn.addEventListener('click', () => {
+      const next = curTheme()==='dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem(LS_KEY, next);
+      applyThemeUI();
+      showToast('Đã đổi giao diện', `Chế độ hiện tại: ${next==='dark'?'Tối':'Sáng'}`, 'info');
+    });
+
+    if (window.matchMedia){
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        // chỉ cập nhật nếu người dùng chưa chọn tay (không có LS_KEY)
+        if (!localStorage.getItem(LS_KEY)) applyThemeUI();
+      });
+    }
+  </script>
+
+  <!-- ===== Toast & Confirm nâng cấp ===== -->
+  <script>
+    function showToast(title, msg, type='info', after=null){
+      const t = document.getElementById('toast');
+      const tt= document.getElementById('toast-title');
+      const tm= document.getElementById('toast-msg');
+      t.className = 'toast ' + type;
+      tt.textContent = title;
+      tm.textContent = msg;
+      requestAnimationFrame(()=> t.classList.add('show'));
+      setTimeout(()=> {
+        t.classList.remove('show');
+        if (after) after();
+      }, 2500);
+    }
+
+    function showConfirm(title, message, okText='OK'){
+      return new Promise(res=>{
+        const mask = document.createElement('div');
+        mask.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:70';
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.cssText = 'max-width:420px;padding:16px 18px';
+        card.innerHTML = `
+          <div class="text-lg font-bold mb-1">${title}</div>
+          <div class="text-sm" style="opacity:.9">${message}</div>
+          <div class="mt-4 flex justify-end gap-2">
+            <button class="btn" id="dlg-cancel">Huỷ</button>
+            <button class="btn primary" id="dlg-ok">${okText}</button>
+          </div>
+        `;
+        mask.appendChild(card); document.body.appendChild(mask);
+        card.querySelector('#dlg-cancel').onclick = ()=>{ mask.remove(); res(false); };
+        card.querySelector('#dlg-ok').onclick     = ()=>{ mask.remove(); res(true);  };
+      });
+    }
+  </script>
+
+  <!-- ===== App logic ===== -->
   <script>
     // Firebase init
     const firebaseConfig = {
@@ -157,134 +262,7 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db   = firebase.firestore();
-  </script>
 
-  <!-- ThemeManager (đồng bộ theme) -->
-  <script>
-  (function ThemeManagerInit(){
-    var ThemeManager;
-    const LS_KEY='voucher-theme', root=document.documentElement;
-    let currentTheme=null, isSaving=false, saveTimer=null; const SAVE_DELAY=250;
-    const getSystemPref=()=> (window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
-    const hasFS = ()=> (typeof firebase!=='undefined' && typeof firebase.firestore==='function');
-
-    function dispatchChange(theme){ try{window.dispatchEvent(new CustomEvent('themechange',{detail:{theme}}))}catch{} }
-    function applyTheme(t){ currentTheme=t; t?root.setAttribute('data-theme',t):root.removeAttribute('data-theme'); dispatchChange(t); }
-    function saveToLocal(t){ t?localStorage.setItem(LS_KEY,t):localStorage.removeItem(LS_KEY); }
-
-    function waitForFb(cb){
-      try{ if(firebase?.apps?.length){ cb(); return; } }catch{}
-      const t=setInterval(()=>{ try{ if(firebase?.apps?.length){ clearInterval(t); cb(); } }catch{} },50);
-      setTimeout(()=>clearInterval(t),10000);
-    }
-    async function _saveToFS(t){
-      if(!hasFS()) return; const u=firebase.auth().currentUser; if(!u) return;
-      await firebase.firestore().collection('users').doc(u.uid).set({ prefs:{ theme:t, updatedAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge:true });
-    }
-    function saveFS(t){
-      if(isSaving) return; clearTimeout(saveTimer);
-      saveTimer=setTimeout(async()=>{ try{ isSaving=true; await _saveToFS(t);}catch(e){console.warn('[TM] save fail:',e)}finally{isSaving=false} }, SAVE_DELAY);
-    }
-
-    (function(){ const ls=localStorage.getItem(LS_KEY); applyTheme(ls||getSystemPref()); })();
-
-    let mql=null;
-    function attachSys(){
-      if(!window.matchMedia) return;
-      mql=window.matchMedia('(prefers-color-scheme: light)');
-      const onC=()=>{ const u=(firebase?.auth?.().currentUser); if(u) return; const sys=getSystemPref(); applyTheme(sys); saveToLocal(sys); };
-      try{ mql.addEventListener?mql.addEventListener('change',onC):mql.addListener(onC);}catch{}
-    }
-    function detachSys(){
-      if(!mql) return;
-      try{ mql.removeEventListener?mql.removeEventListener('change',()=>{}):mql.removeListener(()=>{});}catch{}
-      mql=null;
-    }
-    attachSys();
-
-    function bindToggle(){
-      const b=document.getElementById('themeBtn');
-      if(!b || b.__tmBound) return;
-      b.__tmBound=true;
-      b.addEventListener('click', ()=> window.ThemeManager?.toggle());
-    }
-    bindToggle();
-    const mo=new MutationObserver(()=>bindToggle());
-    mo.observe(document.documentElement,{childList:true,subtree:true});
-
-    if(!document.getElementById('themeBtn')){
-      const auto=document.createElement('button');
-      auto.id='themeBtn'; auto.title='Đổi giao diện';
-      auto.className='btn';
-      auto.innerHTML='<img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">';
-      auto.style.cssText='position:fixed;right:12px;bottom:12px;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:12px;padding:8px 12px;z-index:9999;box-shadow:0 6px 18px rgba(0,0,0,.15);';
-      document.body.appendChild(auto); bindToggle();
-    }
-
-    waitForFb(()=>{
-      try{
-        firebase.auth().onAuthStateChanged(async u=>{
-          if(!u){ attachSys(); const ls=localStorage.getItem(LS_KEY); applyTheme(ls||getSystemPref()); return; }
-          detachSys();
-          const now=document.documentElement.getAttribute('data-theme')||getSystemPref();
-          applyTheme(now); saveToLocal(now); saveFS(now);
-        });
-      }catch(e){ console.warn('[TM] auth watcher error:', e); }
-    });
-
-    window.addEventListener('storage', e=>{
-      if(e.key!==LS_KEY) return;
-      const next=e.newValue || getSystemPref();
-      if(next!==currentTheme) applyTheme(next);
-    });
-
-    ThemeManager = {
-      getTheme(){ return currentTheme || document.documentElement.getAttribute('data-theme') || getSystemPref(); },
-      async setTheme(t){ if(t!=='light'&&t!=='dark') return; applyTheme(t); saveToLocal(t); if(hasFS() && firebase.auth().currentUser) saveFS(t); },
-      async toggle(){ const cur=this.getTheme(); const next=(cur==='dark'?'light':'dark'); await this.setTheme(next); }
-    };
-    try{ window.ThemeManager = ThemeManager; }catch{}
-  })();
-  </script>
-
-  <!-- Đồng bộ icon nút + favicon theo theme (nghe sự kiện themechange) -->
-  <script>
-    const faviconEl = document.getElementById('favicon');
-    const themeIcon = document.getElementById('themeIcon');
-
-    function applyThemeAssets(mode){
-      if (themeIcon) {
-        themeIcon.src = mode === 'dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
-        themeIcon.alt = mode === 'dark' ? 'Dark' : 'Light';
-      }
-      if (faviconEl) {
-        faviconEl.href = mode === 'dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
-        // ép Chrome refresh favicon
-        const bust='?v='+Date.now();
-        faviconEl.href = faviconEl.href.split('?')[0] + bust;
-      }
-
-      // Đổi màu QR khi theme đổi (render lại)
-      if (window.__lastVoucherId) {
-        renderQRCode(window.__lastVoucherId);
-      }
-    }
-
-    // Lần đầu
-    (function initIcons(){
-      const mode = (window.ThemeManager?.getTheme && window.ThemeManager.getTheme()) || 'dark';
-      applyThemeAssets(mode);
-    })();
-
-    // Cập nhật khi theme đổi
-    window.addEventListener('themechange', (e)=>{
-      const mode = e?.detail?.theme || 'dark';
-      applyThemeAssets(mode);
-    });
-  </script>
-
-  <!-- Voucher + QR logic -->
-  <script>
     const qs    = new URLSearchParams(location.search);
     const idQ   = qs.get('id');
     const $     = (id)=> document.getElementById(id);
@@ -298,9 +276,9 @@
     const backBtn    = $('backBtn');
     const useBtn     = $('useBtn');
 
-    backBtn.onclick = ()=> location.href='redeem.html';
+    backBtn.onclick = ()=> history.length>1 ? history.back() : location.href='redeem.html';
 
-    // đếm ngược
+    // Đếm ngược
     let timer = null;
     function startCountdown(expireMs){
       function tick(){
@@ -340,7 +318,7 @@
       return { id: vid, data: doc.data() };
     }
 
-    // Bổ sung expiresAt nếu DB cũ chưa có (dựa vào issuedAt + validDays)
+    // Bổ sung expiresAt nếu DB cũ chưa có (issuedAt + validDays)
     async function ensureExpiresField(vId, data){
       if (data.expiresAt) return data;
       const validDays = Number(data.validDays || 7);
@@ -351,7 +329,7 @@
       return { ...data, expiresAt };
     }
 
-    // Nếu đã quá hạn mà status vẫn active -> chuyển expired
+    // Nếu quá hạn mà status vẫn active -> expired
     async function ensureStatusUpToDate(vId, data){
       const exp = data.expiresAt && data.expiresAt.toDate ? data.expiresAt.toDate().getTime() : null;
       if (!exp) return data;
@@ -367,37 +345,42 @@
       const qrEl = document.getElementById('qrcode');
       if (!qrEl) return;
       qrEl.innerHTML = '';
-      // Lấy màu hiện tại từ CSS variables để khớp theme
       const styles = getComputedStyle(document.documentElement);
       const colorDark  = styles.getPropertyValue('--text').trim() || '#000000';
       const colorLight = styles.getPropertyValue('--card').trim() || '#ffffff';
 
       new QRCode(qrEl, {
         text: voucherCode,
-        width: 180,
-        height: 180,
-        colorDark: colorDark,
-        colorLight: colorLight,
+        width: 180, height: 180,
+        colorDark, colorLight,
         correctLevel: QRCode.CorrectLevel.H
       });
     }
 
-    // Nút "đã dùng"
+    // Đánh dấu đã dùng (có confirm + toast)
     useBtn.onclick = async ()=>{
+      const id = idQ || voucherIdEl.textContent;
+      if(!id) return;
+      const ok = await showConfirm('Xác nhận', 'Bạn muốn đánh dấu voucher này là ĐÃ DÙNG?', 'Xác nhận');
+      if (!ok) return;
       try{
-        const id = idQ || voucherIdEl.textContent;
-        if(!id) return;
         await db.collection('vouchers').doc(id).set({ status: 'used' }, { merge: true });
         setStatusBadge('used');
-      }catch(e){ alert('Không thể cập nhật trạng thái: '+e.message); }
+        showToast('Thành công', 'Đã đánh dấu voucher là ĐÃ DÙNG.', 'success');
+      }catch(e){
+        showToast('Lỗi', 'Không thể cập nhật trạng thái: '+e.message, 'error');
+      }
     };
 
     // Load voucher
     auth.onAuthStateChanged(async user=>{
-      if(!user){ location.href='login.html'; return; }
+      if(!user){
+        showToast('Cần đăng nhập', 'Bạn sẽ được chuyển tới trang đăng nhập...', 'info', ()=> location.href='login.html');
+        return;
+      }
       try{
         const res = await loadVoucherDoc(user.uid);
-        if(!res){ alert('Không tìm thấy voucher.'); return; }
+        if(!res){ showToast('Không tìm thấy', 'Voucher không tồn tại hoặc đã xoá.', 'error'); return; }
 
         const { id, data } = res;
         const d1 = await ensureExpiresField(id, data);
@@ -420,9 +403,12 @@
 
         if (expires) startCountdown(expires.getTime());
         else remainingEl.textContent = '—';
+
+        // Thông báo nho nhỏ khi vào trang
+        showToast('Tải thành công', 'Voucher đã sẵn sàng để quét.', 'success');
       }catch(e){
         console.error(e);
-        alert('Lỗi tải voucher: '+e.message);
+        showToast('Lỗi tải', e.message || 'Không thể tải voucher.', 'error');
       }
     });
   </script>
