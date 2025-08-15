@@ -10,9 +10,7 @@
   <link id="faviconDark"  rel="icon" type="image/svg+xml" href="assets/favicon-dark.svg"  media="(prefers-color-scheme: dark)">
   <link rel="alternate icon" href="assets/favicon-32.png" sizes="32x32">
 
-  <!-- Tailwind (layout/spacing) -->
   <script src="https://cdn.tailwindcss.com"></script>
-
   <style>
     :root{
       --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
@@ -44,15 +42,15 @@
     .btn.primary:hover{ background: var(--primary-strong) }
     .badge{ border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-size:12px; color:var(--muted); background: var(--bg-soft) }
     .status.active{color:var(--ok)} .status.expired{color:var(--err)} .status.used{color:#f59e0b}
-    .muted{color:var(--muted)} .big{font-size:28px;font-weight:800} .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace}
+    .muted{color:var(--muted)} .big{font-size:28px;font-weight:800} .mono{font-family:ui-monospace,monospace}
 
-    /* QR bên phải + ô bo góc */
     .qr-card{ border:1px solid var(--border); border-radius:16px; background: var(--bg-soft); box-shadow: var(--shadow); }
     .qr-note{ border-top:1px dashed var(--border); border-radius:0 0 16px 16px; padding:10px 12px; font-size:12px; color:var(--muted); background: var(--card); }
 
-    /* Toast */
-    .toast{ position:fixed; top:16px; right:16px; max-width:320px; z-index:60; background:var(--card); color:var(--text); border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); opacity:0; transform: translateY(-6px); transition: all .25s ease }
-    .toast.show{ opacity:1; transform:none } .toast.success{ border-left-color:#22c55e } .toast.error{ border-left-color:#ef4444 } .toast.info{ border-left-color:var(--primary) }
+    /* Toast: FIX chặn click khi ẩn */
+    .toast{ position:fixed; top:16px; right:16px; max-width:320px; z-index:60; background:var(--card); color:var(--text); border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); opacity:0; transform: translateY(-6px); transition: all .25s ease; pointer-events:none; }
+    .toast.show{ opacity:1; transform:none; pointer-events:auto; }
+    .toast.success{ border-left-color:#22c55e } .toast.error{ border-left-color:#ef4444 } .toast.info{ border-left-color:var(--primary) }
   </style>
 </head>
 <body>
@@ -66,7 +64,7 @@
       <nav class="flex items-center gap-2">
         <a class="btn" href="library.html"><img src="assets/book.svg" class="icon" alt="">Thư viện</a>
         <a class="btn" href="redeem.html"><img src="assets/gift.svg" class="icon" alt="">Đổi quà</a>
-        <button id="themeBtn" class="btn" title="Đổi giao diện">
+        <button id="themeBtn" class="btn relative z-50" title="Đổi giao diện">
           <img id="themeIcon" class="icon" alt="theme">
         </button>
       </nav>
@@ -126,61 +124,71 @@
   <!-- QRCode.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- THEME (đồng bộ như redeem) -->
+  <!-- Theme (đồng bộ như redeem) -->
   <script>
     (function(){
       const root = document.documentElement;
       const LS_KEY = 'voucher-theme';
-      const themeBtn  = document.getElementById('themeBtn');
-      const themeIcon = document.getElementById('themeIcon');
+      const btn  = document.getElementById('themeBtn');
+      const icon = document.getElementById('themeIcon');
       const favLight  = document.getElementById('faviconLight');
       const favDark   = document.getElementById('faviconDark');
 
-      const sysLight = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-      const getTheme = () => {
-        const t = root.getAttribute('data-theme');
-        if (t==='light' || t==='dark') return t;
+      const sysLight = ()=> window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      function getTheme(){
+        const attr = root.getAttribute('data-theme');
+        if (attr==='light' || attr==='dark') return attr;
         const saved = localStorage.getItem(LS_KEY);
         return saved || (sysLight() ? 'light' : 'dark');
-      };
-      const setTheme = (t) => {
+      }
+      function applyAssets(t){
+        if (icon){
+          icon.src = t==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
+          icon.alt = t==='dark' ? 'Dark' : 'Light';
+        }
+        if (favLight && favDark){
+          favLight.media = (t==='light') ? 'all' : '(prefers-color-scheme: light)';
+          favDark.media  = (t==='dark')  ? 'all' : '(prefers-color-scheme: dark)';
+        }
+        // đổi màu QR
+        if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
+      }
+      function setTheme(t){
         if (t!=='light' && t!=='dark') return;
         root.setAttribute('data-theme', t);
         localStorage.setItem(LS_KEY, t);
-        // icon
-        if (themeIcon){
-          themeIcon.src = t==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
-          themeIcon.alt = t==='dark' ? 'Dark' : 'Light';
-        }
-        // favicon
-        if (favLight && favDark){
-          favLight.media = t==='light' ? 'all' : '(prefers-color-scheme: light)';
-          favDark.media  = t==='dark'  ? 'all' : '(prefers-color-scheme: dark)';
-        }
-        // re-render QR để đổi màu
-        if (window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
-      };
+        applyAssets(t);
+      }
 
       // init
       setTheme(getTheme());
 
-      // đảm bảo nút luôn hoạt động
-      if (themeBtn && !themeBtn.__bound){
-        themeBtn.__bound = true;
-        themeBtn.addEventListener('click', () => {
+      // bind click (đảm bảo luôn bấm được)
+      if (btn && !btn.__bound){
+        btn.__bound = true;
+        btn.addEventListener('click', ()=>{
           const next = getTheme()==='dark' ? 'light' : 'dark';
           setTheme(next);
           showToast('Đã đổi giao diện', `Chế độ hiện tại: ${next==='dark'?'Tối':'Sáng'}`, 'info');
         });
       }
 
-      // nếu người dùng không chọn tay, theo dõi system để đổi theo
+      // phím tắt T để đổi theme
+      document.addEventListener('keydown', (e)=>{
+        if (e.key.toLowerCase() === 't' && !e.metaKey && !e.ctrlKey && !e.altKey){
+          const next = getTheme()==='dark' ? 'light' : 'dark';
+          setTheme(next);
+          showToast('Đã đổi giao diện', `Chế độ hiện tại: ${next==='dark'?'Tối':'Sáng'}`, 'info');
+        }
+      });
+
+      // auto theo system khi chưa chọn tay
       if (window.matchMedia){
         try{
-          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
             if (!localStorage.getItem(LS_KEY)) setTheme(sysLight() ? 'light' : 'dark');
           });
-        }catch(_){}
+        }catch{}
       }
     })();
   </script>
@@ -188,19 +196,18 @@
   <!-- Toast helper -->
   <script>
     function showToast(title, msg, type='info', after=null){
-      const t = document.getElementById('toast');
+      const t  = document.getElementById('toast');
       const tt = document.getElementById('toast-title');
       const tm = document.getElementById('toast-msg');
       t.className = 'toast '+type;
       tt.textContent = title; tm.textContent = msg;
       requestAnimationFrame(()=> t.classList.add('show'));
-      setTimeout(()=>{ t.classList.remove('show'); if(after) after(); }, 2500);
+      setTimeout(()=>{ t.classList.remove('show'); if(after) after(); }, 2200);
     }
   </script>
 
   <!-- App logic -->
   <script>
-    // Firebase init
     const firebaseConfig = {
       apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
       authDomain: "loginandsignin-4932b.firebaseapp.com",
@@ -228,7 +235,6 @@
 
     backBtn.onclick = ()=> history.length>1 ? history.back() : location.href='redeem.html';
 
-    // Countdown
     let timer=null;
     function startCountdown(expireMs){
       function tick(){
