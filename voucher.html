@@ -55,6 +55,22 @@
     .muted{color:var(--muted)}
     .big{font-size:28px;font-weight:800}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+
+    /* Khối QR phải: ô chữ nhật bo góc bên dưới QR */
+    .qr-card{
+      border:1px solid var(--border);
+      border-radius:16px;
+      background: var(--bg-soft);
+      box-shadow: var(--shadow);
+    }
+    .qr-note{
+      border-top:1px dashed var(--border);
+      border-radius:0 0 16px 16px;
+      padding:10px 12px;
+      font-size:12px;
+      color:var(--muted);
+      background: var(--card);
+    }
   </style>
 </head>
 <body>
@@ -83,24 +99,34 @@
         <span id="statusBadge" class="badge status">Đang tải...</span>
       </div>
 
-      <div class="mt-3">
-        <div class="row"><span class="muted">Món quà</span><strong id="giftName">—</strong></div>
-        <div class="row"><span class="muted">Mã voucher</span><span id="voucherId" class="mono">—</span></div>
-        <div class="row"><span class="muted">Ngày cấp</span><span id="issuedAt">—</span></div>
-        <div class="row"><span class="muted">Hạn dùng</span><span id="expiresAt">—</span></div>
-        <div class="row"><span class="muted">Còn lại</span><span id="remaining">—</span></div>
-      </div>
+      <!-- Lưới 2 cột: trái = info; phải = QR + ô bo góc -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+        <!-- LEFT: Thông tin -->
+        <div>
+          <div class="row"><span class="muted">Món quà</span><strong id="giftName">—</strong></div>
+          <div class="row"><span class="muted">Mã voucher</span><span id="voucherId" class="mono">—</span></div>
+          <div class="row"><span class="muted">Ngày cấp</span><span id="issuedAt">—</span></div>
+          <div class="row"><span class="muted">Hạn dùng</span><span id="expiresAt">—</span></div>
+          <div class="row"><span class="muted">Còn lại</span><span id="remaining">—</span></div>
 
-      <!-- QR code -->
-      <div class="mt-6 text-center">
-        <div class="muted mb-2">Mã QR</div>
-        <div id="qrcode" class="inline-block p-3 border rounded-lg" style="background:var(--card); border-color:var(--border)"></div>
-        <div class="mt-2 text-xs muted">Quét mã để xác thực voucher</div>
-      </div>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <button id="backBtn" class="btn">Quay lại đổi quà</button>
+            <button id="useBtn" class="btn primary">Đánh dấu đã dùng</button>
+          </div>
+        </div>
 
-      <div class="mt-6 row">
-        <button id="backBtn" class="btn">Quay lại đổi quà</button>
-        <button id="useBtn" class="btn primary">Đánh dấu đã dùng</button>
+        <!-- RIGHT: QR + ô chữ nhật bo góc phía dưới -->
+        <div class="qr-card p-4">
+          <div class="text-center">
+            <div class="muted mb-2">Mã QR</div>
+            <div id="qrcode" class="inline-block p-3 border rounded-lg"
+                 style="background:var(--card); border-color:var(--border)"></div>
+          </div>
+          <!-- Ô chữ nhật bo góc dưới mã -->
+          <div class="qr-note mt-4">
+            Dùng ứng dụng đối tác để quét & xác thực voucher. Nhân viên có thể nhập mã thủ công nếu cần.
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -119,7 +145,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <script>
-    // Firebase init (đồng bộ với các trang khác)
+    // Firebase init
     const firebaseConfig = {
       apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
       authDomain: "loginandsignin-4932b.firebaseapp.com",
@@ -250,7 +276,7 @@
       applyThemeAssets(mode);
     })();
 
-    // Cập nhật khi theme đổi (từ bất kỳ trang/thiết bị)
+    // Cập nhật khi theme đổi
     window.addEventListener('themechange', (e)=>{
       const mode = e?.detail?.theme || 'dark';
       applyThemeAssets(mode);
