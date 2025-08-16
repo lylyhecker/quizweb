@@ -1,408 +1,343 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Đổi quà</title>
 
-  <!-- Favicon SVG theo theme -->
-  <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg" />
+  <!-- Tailwind chỉ dùng cho layout/spacing -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <!-- Favicon (ThemeManager sẽ đổi) -->
+  <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg"/>
 
   <style>
+    /* ========= THEME (y hệt quiz) ========= */
     :root{
       --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
       --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444;
       --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25);
     }
     @media (prefers-color-scheme: light){
-      :root{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+      :root{
+        --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280;
+        --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626;
+        --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08);
+      }
     }
-    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#fff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
+    :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
     :root[data-theme="dark"]{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
 
-    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
-      margin:0; min-height:100%;
-      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;
-      color:var(--text);
+      margin:0; color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, Arial;
       background:
         radial-gradient(1200px 600px at 10% -10%, rgba(122,162,255,.18), transparent 60%),
         radial-gradient(900px 500px at 110% 10%, rgba(125,211,252,.16), transparent 60%),
         var(--bg);
     }
-    .wrap{ max-width:1100px; margin:0 auto; padding:28px 20px 56px; }
-    .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 16px; }
-    .title{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
-    .logo{ width:36px; height:36px; border-radius:12px; display:grid; place-items:center; background: linear-gradient(135deg, var(--primary), #60a5fa); box-shadow: var(--shadow); }
-    .icon{ width:18px; height:18px; object-fit:contain; display:inline-block; }
-    .actions{ display:flex; gap:10px; flex-wrap:wrap; }
-    .btn{ appearance:none; border:none; cursor:pointer; background: var(--primary); color:white; font-weight:700; padding:10px 14px; border-radius:12px; transition: transform .12s ease, background .2s ease; box-shadow: 0 6px 18px rgba(37,99,235,.25); text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+
+    .card{ background: var(--card); border:1px solid var(--border); border-radius:18px; box-shadow: var(--shadow); }
+    .icon { width: 18px; height: 18px; object-fit: contain; display:inline-block }
+    .muted{ color: var(--muted); }
+
+    .btn{
+      appearance:none; border:none; cursor:pointer;
+      background: var(--primary); color:white; font-weight:700;
+      padding:10px 14px; border-radius:12px;
+      transition: transform .12s ease, background .2s ease;
+      box-shadow: 0 6px 18px rgba(37,99,235,.25);
+      text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+    }
     .btn:hover{ transform: translateY(-1px); background: var(--primary-strong); }
     .btn.secondary{ background: transparent; color: var(--text); border:1px solid var(--border); box-shadow:none; }
     .btn.secondary:hover{ background: var(--bg-soft); }
-    .theme-toggle{ border:1px solid var(--border); background: var(--card); color:var(--text); border-radius: 12px; padding:8px 12px; cursor:pointer; }
 
-    .card{ background: var(--card); border:1px solid var(--border); border-radius:18px; padding:16px; box-shadow: var(--shadow); }
-    .muted{ color:var(--muted); font-size:14px; }
+    /* Thanh số dư */
+    #balance-wrap{ display:flex; align-items:center; gap:10px; }
+    #balance-bar{ width: 160px; height: 10px; background: var(--bg-soft); border:1px solid var(--border); border-radius: 999px; overflow: hidden; }
+    #balance-fill{ height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), #60a5fa); transition: width 0.35s ease; }
+    #balance-text{ font-size: 12px; color: var(--muted); }
 
-    .xp{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px; }
-    @media (max-width:800px){ .xp{ grid-template-columns: 1fr; } }
-    .xp-bar{ width:100%; height:14px; background: var(--bg-soft); border-radius:999px; overflow:hidden; border:1px solid var(--border); }
-    .xp-fill{ height:100%; width:0%; background: linear-gradient(90deg, var(--primary), #60a5fa); transition: width .35s ease; }
-
-    .grid{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:16px; }
-    @media (max-width:980px){ .grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
-    @media (max-width:640px){ .grid{ grid-template-columns: 1fr; } }
-    .gift{ display:flex; flex-direction:column; gap:8px; }
-    .gift h4{ margin:0; font-size:18px; }
-    .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .badge{ border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-size:12px; color:var(--muted); background: var(--bg-soft); }
-    .price{ font-weight:700; }
-    .empty{ text-align:center; color:var(--muted); padding:40px 0; }
-
-    /* ======= Modal (xác nhận & thông báo) ======= */
-    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; z-index:50; }
-    .modal{ max-width: 420px; margin: 7rem auto 0; }
-    .modal .actions{ justify-content:center; gap:12px; }
-    .icon-xl{ width:48px; height:48px; margin-bottom:12px; display:inline-block; }
+    /* Toast */
+    .toast{ position:fixed; top:16px; right:16px; max-width:320px; z-index:60; background:var(--card); color:var(--text); border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); opacity:0; transform: translateY(-6px); transition: all .25s ease; pointer-events:none; }
+    .toast.show{ opacity:1; transform:none; pointer-events:auto }
+    .toast.success{ border-left-color:#22c55e } .toast.error{ border-left-color:#ef4444 } .toast.info{ border-left-color:var(--primary) }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="title">
-        <div class="logo">
-          <img src="assets/gift.svg" class="icon" alt="gift">
+  <!-- Header -->
+  <header class="app-header shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl ring-1 ring-white/10 grid place-items-center" style="background:linear-gradient(135deg,var(--primary),#60a5fa)">
+          <img src="assets/gift.svg" class="icon" alt="">
         </div>
         <div>
-          <div>Đổi quà</div>
-          <div class="muted" id="status">Đang tải...</div>
+          <h1 class="text-lg font-extrabold">Đổi quà</h1>
+          <div class="text-xs muted" id="statusSub">Chọn quà để đổi</div>
         </div>
       </div>
-      <div class="actions">
-        <a class="btn secondary" href="library.html">
-          <img src="assets/book.svg" class="icon" alt="library"> Thư viện
-        </a>
-        <a class="btn secondary" href="voucher.html">
-          <img src="assets/voucher.svg" class="icon" alt="voucher"> Voucher
-        </a>
-        <button class="theme-toggle" id="themeBtn" title="Đổi giao diện">
-          <img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">
-        </button>
-      </div>
-    </div>
 
-    <div class="xp">
-      <div class="card">
-        <h3 style="margin:0 0 8px 0">Xin chào, <span id="username">Khách</span></h3>
-        <div class="xp-bar"><div id="xp-bar-fill" class="xp-fill"></div></div>
-        <p class="muted" id="user-level" style="margin:8px 0 0 0">Lv 1 (0 XP)</p>
-      </div>
-      <div class="card">
-        <div class="row">
-          <div class="muted">Mẹo</div>
-          <span class="badge" id="xpNext">0 / 100 XP</span>
+      <!-- User + số dư (Điểm/XP) -->
+      <div class="flex items-center gap-4 flex-wrap">
+        <div class="text-right">
+          <div id="userName" class="font-bold">Khách</div>
+          <div id="userStatsLine" class="text-sm muted"></div>
+          <div id="balance-wrap" class="mt-1" style="display:none">
+            <div id="balance-bar"><div id="balance-fill"></div></div>
+            <span id="balance-text"></span>
+          </div>
         </div>
-        <p class="muted" style="margin:6px 0 0 0">Tích đủ XP để mở kho quà giá trị hơn.</p>
+
+        <a class="btn secondary" href="library.html"><img src="assets/book.svg" class="icon" alt=""> Thư viện</a>
+        <button class="btn secondary" id="themeBtn" title="Đổi giao diện"><img id="themeIcon" class="icon" alt=""></button>
       </div>
     </div>
+  </header>
 
-    <div class="card" style="margin-bottom:12px;">
-      <div class="row">
-        <h3 style="margin:0">Danh sách quà</h3>
-        <span class="badge" id="giftCount">0 quà</span>
-      </div>
-      <div class="grid" id="gift-list"></div>
-      <div id="empty" class="empty" style="display:none">Hiện chưa có quà.</div>
+  <!-- Main -->
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    <section class="card p-5">
+      <h2 class="text-xl font-bold mb-3 flex items-center gap-2"><img src="assets/gift.svg" class="icon" alt=""> <span>Danh sách quà</span></h2>
+      <div id="gift-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div class="max-w-6xl mx-auto px-4 py-4 text-center text-sm muted">
+      © 2025 Quiz & Assistant Web — Design by Mr.Hecker
     </div>
-  </div>
+  </footer>
 
-  <!-- ===== Modal xác nhận ===== -->
-  <div id="confirm-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
-    <div class="card modal p-6 text-center">
-      <img id="confirm-icon" class="icon-xl" src="assets/help.svg" alt="">
-      <h2 id="confirm-title" class="text-xl font-semibold mb-2">Xác nhận</h2>
-      <p id="confirm-message" class="muted mb-4">Bạn có chắc?</p>
-      <div class="actions">
-        <button id="confirm-cancel" class="btn secondary">Hủy</button>
-        <button id="confirm-ok" class="btn">Đổi quà</button>
-      </div>
-    </div>
-  </div>
+  <!-- Toast -->
+  <div id="toast" class="toast"><strong id="toast-title"></strong><div id="toast-msg" class="mt-1 text-sm"></div></div>
 
-  <!-- ===== Modal thông báo (dùng SVG) ===== -->
-  <div id="notification-modal" class="modal-backdrop">
-    <div class="card modal p-6 text-center">
-      <img id="notification-icon" class="icon-xl" src="assets/check-circle.svg" alt="">
-      <h2 id="notification-title" class="text-xl font-semibold mb-2"></h2>
-      <p id="notification-message" class="muted mb-5"></p>
-      <div class="actions">
-        <button id="notification-close" class="btn">OK</button>
-      </div>
-    </div>
-  </div>
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
-    authDomain: "loginandsignin-4932b.firebaseapp.com",
-    projectId: "loginandsignin-4932b",
-    storageBucket: "loginandsignin-4932b.appspot.com",
-    messagingSenderId: "863133586719",
-    appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-</script>
-
-<!-- Theme Manager -->
-<script>
-  (function(){
-    const LS_KEY='voucher-theme', root=document.documentElement;
-    let currentTheme=null;
-    const getSystemPref=()=> (window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
-    function applyTheme(t){ currentTheme=t; root.setAttribute('data-theme',t); }
-    function saveToLocal(t){ localStorage.setItem(LS_KEY,t); }
-    (function(){ const ls=localStorage.getItem(LS_KEY); applyTheme(ls||getSystemPref()); })();
-    document.getElementById('themeBtn')?.addEventListener('click', ()=> ThemeManager?.toggle());
-    ThemeManager = { getTheme(){ return currentTheme||root.getAttribute('data-theme')||getSystemPref(); }, setTheme(t){ if(t!=='light'&&t!=='dark') return; applyTheme(t); saveToLocal(t); }, toggle(){ const cur=this.getTheme(); this.setTheme(cur==='dark'?'light':'dark'); } };
-    window.ThemeManager = ThemeManager;
-    function applyAssets(mode){
-      const icon=document.getElementById('themeIcon');
-      if(icon) icon.src = mode==='dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
-      const fav=document.getElementById('favicon');
-      if(fav){ fav.href = mode==='dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg'; fav.href = fav.href.split('?')[0] + '?v=' + Date.now(); }
-    }
-    applyAssets(ThemeManager.getTheme());
-    window.addEventListener('themechange', e=>applyAssets(e.detail.theme));
+  <!-- ThemeManager v2.1 -->
+  <script>
+  (function ThemeManager_v21(){
+    const root=document.documentElement; const LS='voucher-theme';
+    const sys=()=> (matchMedia && matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
+    function apply(t){ root.setAttribute('data-theme', t); dispatchEvent(new CustomEvent('themechange',{detail:{theme:t}})); }
+    (function init(){ apply(localStorage.getItem(LS) || sys()); })();
+    document.getElementById('themeBtn')?.addEventListener('click',()=>window.ThemeManager?.toggle());
+    window.ThemeManager={ getTheme(){return root.getAttribute('data-theme')||sys();}, setTheme(t){ if(t!=='light'&&t!=='dark')return; apply(t); localStorage.setItem(LS,t); }, toggle(){ this.setTheme(this.getTheme()==='dark'?'light':'dark'); } };
+    const fav=document.getElementById('favicon'); const icon=document.getElementById('themeIcon');
+    function assets(mode){ if(icon){icon.src=mode==='dark'?'assets/theme-dark.svg':'assets/theme-light.svg'; icon.alt=mode==='dark'?'Dark':'Light';} if(fav){fav.href=mode==='dark'?'assets/favicon-dark.svg':'assets/favicon-light.svg'; fav.href=fav.href.split('?')[0]+'?v='+Date.now();}}
+    assets(window.ThemeManager.getTheme()); addEventListener('themechange',e=>assets(e.detail.theme));
   })();
-</script>
+  </script>
 
-<script>
-  const usernameEl = document.getElementById('username');
-  const statusEl = document.getElementById('status');
-  const userLevelEl = document.getElementById('user-level');
-  const xpFillEl = document.getElementById('xp-bar-fill');
-  const xpNextEl = document.getElementById('xpNext');
-  const giftListEl = document.getElementById('gift-list');
-  const giftCountEl = document.getElementById('giftCount');
-  const emptyEl = document.getElementById('empty');
+  <script>
+    // ===== Firebase init =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+      authDomain: "loginandsignin-4932b.firebaseapp.com",
+      projectId: "loginandsignin-4932b",
+      storageBucket: "loginandsignin-4932b.appspot.com",
+      messagingSenderId: "863133586719",
+      appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+    };
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth=firebase.auth(); const db=firebase.firestore();
 
-  let userXP = 0, userLevel = 1, currentUser = null, redeeming = false;
+    const $=id=>document.getElementById(id);
+    function toast(title,msg,type='info',after=null){
+      const t=$('toast'); $('toast-title').textContent=title; $('toast-msg').textContent=msg;
+      t.className='toast '+type; requestAnimationFrame(()=>t.classList.add('show'));
+      setTimeout(()=>{ t.classList.remove('show'); after&&after(); }, 2300);
+    }
 
-  const gifts = [
-    { id: 1, name: "Thẻ quà tặng 50K", cost: 100 },
-    { id: 2, name: "Voucher ăn uống 100K", cost: 200 },
-    { id: 3, name: "Ly sứ Huế đẹp", cost: 150 },
-    { id: 4, name: "Áo lưu niệm", cost: 300 }
-  ];
+    // ========= User Info & Balance (Điểm hoặc XP) =========
+    let currentUser=null;
+    let balanceLabel='Điểm';  // "Điểm" hoặc "XP"
+    let balanceValue=0;       // số dư hiện dùng để đổi
+    let hasPointsField=false; // true nếu user có 'points' trong Firestore
+    let userLevel=1, userXP=0;
 
-  /* Chuyển tên sang ASCII an toàn để luôn hiển thị */
-  function toAsciiUsername(base, emailLocal, uid){
-    let s = (base || '').trim();
-    if(!s) s = emailLocal || '';
-    s = s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); // bỏ dấu
-    s = s.replace(/đ/g,'d').replace(/Đ/g,'D');
-    s = s.replace(/\s+/g,'-');               // khoảng trắng -> -
-    s = s.replace(/[^A-Za-z0-9._-]/g,'');    // lọc chỉ còn ASCII hợp lệ
-    s = s.replace(/^[._-]+|[._-]+$/g,'');    // bỏ ._- đầu/cuối
-    s = s.replace(/[._-]{2,}/g,'-');         // gộp nhiều dấu
-    if (s.length < 2) s = (emailLocal || 'user');
-    if (s.length < 2 && uid) s = 'user' + String(uid).slice(0,6);
-    if (s.length > 30) s = s.slice(0,30);
-    return s || 'user';
-  }
+    // Sanitize tên như quiz
+    function sanitizeUsername(name){
+      if (!name) return "Khach";
+      const ascii = name.normalize("NFKD").replace(/[^\x00-\x7F]/g,"");
+      const cleaned = ascii.replace(/\s+/g,"-").replace(/[^a-zA-Z0-9_-]/g,"");
+      return cleaned || "Khach";
+    }
 
-  /* ======= Modal helpers (SVG) ======= */
-  function showConfirm(title, message, okText='Đổi quà'){
-    const modal = document.getElementById('confirm-modal');
-    const t = document.getElementById('confirm-title');
-    const msg = document.getElementById('confirm-message');
-    const ok = document.getElementById('confirm-ok');
-    const cancel = document.getElementById('confirm-cancel');
-    t.textContent = title; msg.textContent = message; ok.textContent = okText;
+    async function loadUserStats(){
+      if (!auth.currentUser) return;
+      const ref = db.collection('users').doc(auth.currentUser.uid);
+      const snap = await ref.get();
+      const data = snap.data() || {};
 
-    modal.style.display = 'block';
-    return new Promise(resolve=>{
-      function cleanup(result){
-        modal.style.display = 'none';
-        ok.removeEventListener('click', onOk);
-        cancel.removeEventListener('click', onCancel);
-        document.removeEventListener('keydown', onKey);
-        resolve(result);
+      // Ưu tiên 'points'. Nếu không có points mà có 'xp' => dùng XP
+      if (typeof data.points === 'number'){
+        hasPointsField = true;
+        balanceLabel = 'Điểm';
+        balanceValue = Number(data.points || 0);
+      } else if (typeof data.xp === 'number'){
+        hasPointsField = false;
+        balanceLabel = 'XP';
+        balanceValue = Number(data.xp || 0);
+      } else {
+        hasPointsField = true; // mặc định tạo points
+        balanceLabel = 'Điểm';
+        balanceValue = 0;
+        // khởi tạo points=0 để lần sau dùng "Điểm"
+        await ref.set({ points: 0 }, { merge:true });
       }
-      function onOk(){ cleanup(true); }
-      function onCancel(){ cleanup(false); }
-      function onKey(e){ if(e.key==='Escape') cleanup(false); if(e.key==='Enter') cleanup(true); }
 
-      ok.addEventListener('click', onOk);
-      cancel.addEventListener('click', onCancel);
-      document.addEventListener('keydown', onKey);
-      modal.addEventListener('click', (e)=>{ if(e.target===modal) onCancel(); });
-    });
-  }
+      userLevel = Number(data.level || 1);
+      userXP    = Number(data.xp    || 0);
 
-  function showNotification(title, message, type='success', onClose){
-    const modal = document.getElementById('notification-modal');
-    const t = document.getElementById('notification-title');
-    const msg = document.getElementById('notification-message');
-    const icon = document.getElementById('notification-icon');
-    const closeBtn = document.getElementById('notification-close');
-
-    t.textContent = title;
-    msg.textContent = message;
-    icon.src = type==='success' ? 'assets/check-circle.svg' : 'assets/alert.svg';
-    icon.alt = type==='success' ? 'success' : 'error';
-
-    modal.style.display = 'block';
-    function cleanup(){
-      modal.style.display = 'none';
-      closeBtn.removeEventListener('click', cleanup);
-      document.removeEventListener('keydown', onKey);
-      modal.removeEventListener('click', onBackdrop);
-      if(typeof onClose==='function') onClose();
+      applyUserHeader();
     }
-    function onBackdrop(e){ if(e.target===modal) cleanup(); }
-    function onKey(e){ if(e.key==='Escape' || e.key==='Enter') cleanup(); }
 
-    closeBtn.addEventListener('click', cleanup);
-    document.addEventListener('keydown', onKey);
-    modal.addEventListener('click', onBackdrop);
-  }
+    function applyUserHeader(){
+      const raw = currentUser?.displayName || currentUser?.email?.split('@')[0] || `ID-${currentUser?.uid?.slice(0,6)}`;
+      $('userName').textContent = sanitizeUsername(raw);
 
-  /* ======= UI logic ======= */
-  function updateXPUI(){
-    userLevelEl.innerText=`Lv ${userLevel} (${userXP} XP)`;
-    const xpPercent=Math.min(100,(userXP%100));
-    xpFillEl.style.width=`${xpPercent}%`;
-    xpNextEl.textContent=`${xpPercent} / 100 XP`;
-  }
+      const parts=[];
+      parts.push(`${balanceLabel}: ${balanceValue}`);
+      if (userLevel) parts.push(`Cấp: ${userLevel}`);
+      $('userStatsLine').textContent = parts.join(' • ');
 
-  function renderGifts() {
-    giftListEl.innerHTML = '';
-    if (!gifts.length){
-      emptyEl.style.display = 'block';
-      giftCountEl.textContent='0 quà';
-      return;
+      const wrap = $('balance-wrap');
+      const bar  = $('balance-fill');
+      const txt  = $('balance-text');
+      if (wrap && bar && txt){
+        wrap.style.display = 'flex';
+        const quota = 100; // hiển thị tiến độ theo mốc 100
+        const pct = Math.max(0, Math.min(100, (balanceValue % quota) / quota * 100));
+        bar.style.width = pct + '%';
+        txt.textContent = `Tiến độ: ${(balanceValue % quota)}/${quota} (${balanceLabel})`;
+      }
     }
-    emptyEl.style.display = 'none';
-    giftCountEl.textContent = `${gifts.length} quà`;
 
-    gifts.forEach(gift => {
-      const afford = currentUser && userXP >= gift.cost;
-      const div = document.createElement("div");
-      div.className = "card gift";
-      div.innerHTML = `
-        <div class="row">
-          <h4>${gift.name}</h4>
-          <span class="badge price">${gift.cost} XP</span>
-        </div>
-        <div class="row">
-          <span class="muted">${afford ? 'Đủ điều kiện' : (currentUser ? `Thiếu ${gift.cost - userXP} XP` : 'Cần đăng nhập')}</span>
-          <button class="btn ${afford ? '' : 'secondary'}" ${afford ? '' : 'disabled'} data-id="${gift.id}">
-            ${afford ? 'Đổi quà' : 'Không đủ XP'}
-          </button>
-        </div>
-      `;
-      div.querySelector('button').addEventListener('click', () => redeemGift(gift.id));
-      giftListEl.appendChild(div);
-    });
-  }
+    // ========= Gift list (demo) =========
+    const gifts = [
+      { id:'g1', name:'Topping miễn phí', cost:50 },
+      { id:'g2', name:'Giảm 20%', cost:100 },
+      { id:'g3', name:'Combo nước', cost:150 },
+      { id:'g4', name:'Voucher 50k', cost:200 },
+      { id:'g5', name:'Thẻ quà tặng 100k', cost:300 },
+      { id:'g6', name:'Thẻ game 200k', cost:500 },
+      { id:'g7', name:'Thẻ quà tặng 500k', cost:1000 },
+      { id:'g8', name:'Thẻ quà tặng 1 triệu', cost:2000 },
+      { id:'g9', name:'Thẻ quà tặng 2 triệu', cost:5000 },
+      { id:'g10', name:'Thẻ quà tặng 5 triệu', cost:10000 },
+      { id:'g11', name:'Thẻ quà tặng 10 triệu', cost:20000 },
+      { id:'g12', name:'Thẻ quà tặng 20 triệu', cost:50000 }
+    ];
 
-  async function redeemGift(giftId) {
-    if (redeeming) return;
-    const gift = gifts.find(g => g.id === giftId);
-    if (!gift) { showNotification('Lỗi', 'Quà không tồn tại.', 'error'); return; }
-    if (!currentUser) { showNotification('Cần đăng nhập', 'Vui lòng đăng nhập để đổi quà.', 'error'); return; }
-    if (userXP < gift.cost) { showNotification('Không đủ XP', 'XP không đủ để đổi quà này.', 'error'); return; }
-
-    const ok = await showConfirm('Xác nhận đổi quà', `Bạn có chắc muốn đổi "${gift.name}" với giá ${gift.cost} XP?`, 'Đổi quà');
-    if (!ok) return;
-
-    redeeming = true;
-    const prevXP = userXP;
-    userXP -= gift.cost;
-    updateXPUI();
-
-    try {
-      // 1) Trừ XP trên users
-      await db.collection("users").doc(currentUser.uid).set(
-        { xp: userXP, level: userLevel },
-        { merge: true }
-      );
-
-      // 2) Ghi log đổi quà
-      await db.collection("redeem_logs").add({
-        uid: currentUser.uid,
-        giftId: gift.id,
-        giftName: gift.name,
-        cost: gift.cost,
-        redeemedAt: firebase.firestore.FieldValue.serverTimestamp()
+    function renderGifts(){
+      const box = $('gift-list'); box.innerHTML='';
+      gifts.forEach(g=>{
+        const card = document.createElement('div');
+        card.className = 'card p-4 flex justify-between items-center';
+        card.innerHTML = `
+          <div>
+            <div class="font-bold">${g.name}</div>
+            <div class="muted text-sm">Giá: ${g.cost} ${balanceLabel.toLowerCase()}</div>
+          </div>
+          <button class="btn">Đổi</button>
+        `;
+        card.querySelector('button').onclick = ()=> redeemGift(g);
+        box.appendChild(card);
       });
-
-      // 3) Tạo voucher & lấy voucherId
-      const voucherRef = await db.collection("vouchers").add({
-        uid: currentUser.uid,
-        giftId: gift.id,
-        giftName: gift.name,
-        cost: gift.cost,
-        status: 'active',
-        issuedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      const voucherId = voucherRef.id;
-
-      // 4) Lưu last_voucher_id vào users
-      await db.collection("users").doc(currentUser.uid).set(
-        { last_voucher_id: voucherId },
-        { merge: true }
-      );
-
-      renderGifts();
-
-      // 5) Thông báo -> chuyển sang voucher.html?vid=...
-      showNotification(
-        'Đổi quà thành công!',
-        `Bạn đã đổi: ${gift.name}. Nhấn OK để xem voucher.`,
-        'success',
-        () => { window.location.href = `voucher.html?id=${encodeURIComponent(voucherId)}`; }
-      );
-    } catch (err) {
-      console.error("Lỗi đổi quà:", err);
-      userXP = prevXP;
-      updateXPUI(); renderGifts();
-      showNotification('Đổi quà thất bại', 'Có lỗi xảy ra. Vui lòng thử lại.', 'error');
-    } finally {
-      redeeming = false;
     }
-  }
 
-  auth.onAuthStateChanged(async user => {
-    currentUser = user;
-    if (user) {
-      const emailLocal = user.email ? user.email.split("@")[0] : '';
-      const safe = toAsciiUsername(user.displayName || '', emailLocal, user.uid);
-      usernameEl.textContent = safe;
+    // ========= Redeem flow =========
+    async function redeemGift(gift){
+      const u = auth.currentUser;
+      if(!u){ toast('Cần đăng nhập','Hãy đăng nhập trước khi đổi quà.','error', ()=> location.href='login.html'); return; }
+
+      // Kiểm tra đủ số dư (points hoặc xp)
+      if (balanceValue < gift.cost){
+        toast(`Không đủ ${balanceLabel.toLowerCase()}`, `Cần ${gift.cost} ${balanceLabel.toLowerCase()}, hiện có ${balanceValue}.`, 'error');
+        return;
+      }
 
       try{
-        const snap = await db.collection("users").doc(user.uid).get();
-        if (snap.exists) { userXP = snap.data().xp || 0; userLevel = snap.data().level || 1; }
-        else { userXP = 0; userLevel = 1; }
-        statusEl.textContent = 'Đã đăng nhập.'; setTimeout(()=> statusEl.textContent = '', 1200);
-      } catch(e){ statusEl.textContent = 'Không tải được dữ liệu người dùng.'; }
-    } else {
-      usernameEl.textContent = "Khách";
-      userXP = 0; userLevel = 1;
-      statusEl.innerHTML = 'Bạn cần <a class="btn secondary" href="login.html">đăng nhập</a> để đổi quà.';
-    }
-    updateXPUI(); renderGifts();
-  });
-</script>
+        const validDays = 7;
+        const expiresAt = new Date(Date.now() + validDays*86400000);
 
+        // Tạo voucher
+        const ref = await db.collection('vouchers').add({
+          ownerUid: u.uid,
+          uid: u.uid,
+          giftId: gift.id,
+          giftName: gift.name,
+          cost: gift.cost,
+          status: 'active',
+          validDays,
+          issuedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt)
+        });
+        const voucherId = ref.id;
+
+        // Ghi log
+        await db.collection('redeem_logs').add({
+          uid: u.uid,
+          voucherId,
+          giftId: gift.id,
+          giftName: gift.name,
+          cost: gift.cost,
+          redeemedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Trừ số dư: nếu có points → trừ points; nếu đang dùng XP → trừ xp
+        const userRef = db.collection('users').doc(u.uid);
+        if (hasPointsField){
+          const newPoints = Math.max(0, balanceValue - gift.cost);
+          await userRef.set({ points: newPoints, last_voucher_id: voucherId }, { merge:true });
+          balanceValue = newPoints;
+        } else {
+          const newXP = Math.max(0, balanceValue - gift.cost);
+          await userRef.set({ xp: newXP, last_voucher_id: voucherId }, { merge:true });
+          balanceValue = newXP;
+        }
+
+        // Cập nhật UI header
+        applyUserHeader();
+
+        toast('Đổi thành công','Voucher đã được tạo.','success', ()=>{
+          location.href = 'voucher.html?id=' + encodeURIComponent(voucherId);
+        });
+      }catch(e){
+        console.error(e);
+        toast('Lỗi', e.message || 'Không thể đổi quà.', 'error');
+      }
+    }
+
+    // ========= Auth =========
+    auth.onAuthStateChanged(async (u)=>{
+      currentUser = u;
+      renderGifts(); // render theo nhãn Điểm/XP hiện thời (sẽ cập nhật lại sau loadUserStats)
+      if(u){
+        await loadUserStats();
+        renderGifts(); // re-render để cập nhật nhãn giá (điểm/xp)
+      } else {
+        $('userName').textContent = 'Khách';
+        $('userStatsLine').textContent = '';
+        $('balance-wrap').style.display = 'none';
+        balanceLabel='Điểm';
+        balanceValue=0;
+        renderGifts();
+      }
+    });
+  </script>
 </body>
 </html>
+<script>
+  // ========= Theme icon =========
+  const themeIcon = document.getElementById('themeIcon');
+  if (themeIcon) {
+    themeIcon.src = window.ThemeManager.getTheme() === 'dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
+    themeIcon.alt = window.ThemeManager.getTheme() === 'dark' ? 'Dark Mode' : 'Light Mode';
+  }
