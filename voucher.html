@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Voucher</title>
 
-  <!-- Favicon theo theme -->
+  <!-- Favicon theo theme (ThemeManager sẽ đổi) -->
   <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg"/>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- ===== THEME (giống redeem) ===== -->
+  <!-- ===== THEME (giống redeem, theo code bạn đưa) ===== -->
   <style>
     :root{
       --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
@@ -68,6 +68,7 @@
     .qr-card{ border:1px solid var(--border); border-radius:16px; background: var(--bg-soft); box-shadow: var(--shadow); }
     .qr-note{ border-top:1px dashed var(--border); padding:10px 12px; font-size:12px; color:var(--muted); background: var(--card); }
 
+    /* Toast không chắn click khi ẩn */
     .toast{ position:fixed; top:16px; right:16px; max-width:320px; z-index:60;
       background:var(--card); color:var(--text); border:1px solid var(--border); border-left:4px solid var(--primary);
       border-radius:12px; padding:12px 14px; box-shadow:var(--shadow);
@@ -144,19 +145,44 @@
   <!-- QRCode.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  <!-- ===== ThemeManager v2.1 (lưu prefs.theme vào Firestore) ===== -->
+  <!-- ===== ThemeManager v2.1 (giống redeem, lưu Firestore) ===== -->
   <script>
   (function ThemeManager_v21(){
     const root=document.documentElement; let cur=null;
+    const LS_KEY='voucher-theme';
     const sys=()=> (matchMedia && matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
-    function apply(t){cur=t; t?root.setAttribute('data-theme',t):root.removeAttribute('data-theme');
-      dispatchEvent(new CustomEvent('themechange',{detail:{theme:t}}));}
-    (function init(){apply(localStorage.getItem('voucher-theme')||sys())})();
+
+    function dispatch(t){ try{ dispatchEvent(new CustomEvent('themechange',{detail:{theme:t}})); }catch{} }
+    function apply(t){ cur=t; t?root.setAttribute('data-theme',t):root.removeAttribute('data-theme'); dispatch(t); }
+    function saveLS(t){ try{ localStorage.setItem(LS_KEY,t); }catch{} }
+
+    // init: ưu tiên LS, fallback system
+    (function init(){ apply(localStorage.getItem(LS_KEY) || sys()); })();
+
+    // nút toggle
     document.getElementById('themeBtn')?.addEventListener('click',()=>window.ThemeManager?.toggle());
-    window.ThemeManager={getTheme(){return cur||root.getAttribute('data-theme')||sys();},
-      async setTheme(t){if(t!=='light'&&t!=='dark')return;apply(t);try{localStorage.setItem('voucher-theme',t);}catch{}
-        try{const u=firebase.auth().currentUser;if(u){await firebase.firestore().collection('users').doc(u.uid).set({prefs:{theme:t,updatedAt: firebase.firestore.FieldValue.serverTimestamp()}},{merge:true});}}catch(e){}},
-      async toggle(){await this.setTheme(this.getTheme()==='dark'?'light':'dark');}};
+
+    // public API
+    window.ThemeManager={
+      getTheme(){ return cur || root.getAttribute('data-theme') || sys(); },
+      async setTheme(t){
+        if(t!=='light'&&t!=='dark') return;
+        apply(t); saveLS(t);
+        try{
+          const u=firebase.auth().currentUser;
+          if(u){
+            await firebase.firestore().collection('users').doc(u.uid)
+              .set({ prefs:{ theme:t, updatedAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge:true });
+          }
+        }catch(e){ /* ignore */ }
+      },
+      async toggle(){ await this.setTheme(this.getTheme()==='dark'?'light':'dark'); }
+    };
+
+    // auto theo system nếu user chưa lưu tay (LS trống) – có thể bật nếu cần:
+    // matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
+    //   if(!localStorage.getItem(LS_KEY)) apply(sys());
+    // });
   })();
   </script>
 
@@ -165,9 +191,12 @@
     const faviconEl=document.getElementById('favicon');
     const themeIcon=document.getElementById('themeIcon');
     function applyThemeAssets(mode){
-      if(themeIcon){themeIcon.src=mode==='dark'?'assets/theme-dark.svg':'assets/theme-light.svg'; themeIcon.alt=mode==='dark'?'Dark':'Light';}
-      if(faviconEl){faviconEl.href=mode==='dark'?'assets/favicon-dark.svg':'assets/favicon-light.svg'; faviconEl.href=faviconEl.href.split('?')[0]+'?v='+Date.now();}
-      if(window.__lastVoucherId) renderQRCode(window.__lastVoucherId);
+      if(themeIcon){ themeIcon.src=mode==='dark'?'assets/theme-dark.svg':'assets/theme-light.svg'; themeIcon.alt=mode==='dark'?'Dark':'Light'; }
+      if(faviconEl){
+        faviconEl.href=mode==='dark'?'assets/favicon-dark.svg':'assets/favicon-light.svg';
+        faviconEl.href=faviconEl.href.split('?')[0]+'?v='+Date.now(); // ép Chrome refresh
+      }
+      if(window.__lastVoucherId) renderQRCode(window.__lastVoucherId); // QR đổi màu theo theme
     }
     applyThemeAssets(window.ThemeManager?.getTheme?.()||'dark');
     addEventListener('themechange',e=>applyThemeAssets(e.detail?.theme||'dark'));
@@ -193,11 +222,17 @@
           expiresAtEl=$('expiresAt'), remainingEl=$('remaining'), statusBadge=$('statusBadge'),
           backBtn=$('backBtn'), useBtn=$('useBtn');
 
-    backBtn.onclick=()=>history.length>1?history.back():location.href='redeem.html';
-    function setStatusBadge(st){statusBadge.className='badge status '+(st||'active');statusBadge.textContent=st||'active';}
-    function toast(t,m,tp='info',after=null){const box=$('toast');$('toast-title').textContent=t;$('toast-msg').textContent=m;box.className='toast '+tp;requestAnimationFrame(()=>box.classList.add('show'));setTimeout(()=>{box.classList.remove('show');after&&after();},2400);}
+    function toast(t,m,tp='info',after=null){
+      const box=$('toast'); $('toast-title').textContent=t; $('toast-msg').textContent=m;
+      box.className='toast '+tp; requestAnimationFrame(()=>box.classList.add('show'));
+      setTimeout(()=>{box.classList.remove('show'); after&&after();},2400);
+    }
 
-    // ===== Resolve ID =====
+    backBtn.onclick=()=>history.length>1?history.back():location.href='redeem.html';
+
+    function setStatusBadge(st){ statusBadge.className='badge status '+(st||'active'); statusBadge.textContent=st||'active'; }
+
+    // ===== Resolve ID: search -> hash -> path =====
     function getParamFromSearch(names){
       const sp=new URL(location.href).searchParams;
       for(const k of names){const v=sp.get(k); if(v) return decodeURIComponent(v.trim());}
@@ -205,7 +240,7 @@
     }
     function getParamFromHash(names){
       if(!location.hash) return null;
-      const raw=location.hash.replace(/^#\/?/,'');
+      const raw=location.hash.replace(/^#\/?/, '');
       if(raw.includes('?')){
         const qs=new URLSearchParams(raw.split('?')[1]);
         for(const k of names){const v=qs.get(k); if(v) return decodeURIComponent(v.trim());}
@@ -224,7 +259,7 @@
     function sanitizeIdLoose(id){
       if(!id) return null;
       id=id.replace(/\s+/g,' ').trim();
-      if(id.includes('/')) return null;   // Firestore docId không được chứa '/'
+      if(id.includes('/')) return null; // docId không được chứa '/'
       if(id.length>500) id=id.slice(0,500);
       return id || null;
     }
@@ -238,7 +273,7 @@
 
     // ===== Read/Claim helpers =====
     async function findVoucherDoc(vId){
-      const cols=['vouchers','voucher']; // thử cả 2
+      const cols=['vouchers','voucher']; // thử cả 2 collection
       for(const col of cols){
         try{
           const snap=await db.collection(col).doc(vId).get();
@@ -249,7 +284,6 @@
       }
       return null;
     }
-    // Claim 1 lần cho doc legacy chưa có ownerUid (rules PRO + compat phải bật phía server)
     async function tryClaimVoucher(vId, uid){
       const cols=['vouchers','voucher'];
       for(const col of cols){
@@ -304,7 +338,7 @@
     auth.onAuthStateChanged(async user=>{
       if(!user){ toast('Cần đăng nhập','Chuyển tới đăng nhập...','info',()=>location.href='login.html'); return; }
       try{
-        // 1) Resolve ID: search -> hash -> path -> Firestore
+        // 1) Resolve ID: search -> hash -> path -> Firestore(last_voucher_id)
         let raw = getParamFromSearch(['id','voucher_id','vid']) || getParamFromHash(['id','voucher_id','vid']) || getIdFromPath();
         if(!raw){ raw = await getUserLastVoucherId(user.uid); }
         const vId = sanitizeIdLoose(raw);
