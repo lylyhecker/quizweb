@@ -8,11 +8,11 @@
   <!-- Tailwind chỉ dùng layout/spacing -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Favicon (ThemeManager sẽ đổi) -->
+  <!-- Favicon (ThemeSync sẽ đổi) -->
   <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg">
 
   <style>
-    /* ========= THEME (y hệt quiz) ========= */
+    /* ========= THEME (y hệt quiz/404) ========= */
     :root{
       --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
       --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444;
@@ -53,15 +53,8 @@
     .badge{ border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-size:12px; color:var(--muted); background: var(--bg-soft) }
 
     /* 🔒 Trạng thái disable cho voucher đã dùng/hết hạn */
-    .is-disabled{
-      opacity: .55;
-      filter: grayscale(.3);
-    }
-    .btn[disabled], .btn.disabled, a.btn.disabled{
-      pointer-events: none !important;
-      opacity: .6;
-      cursor: not-allowed !important;
-    }
+    .is-disabled{ opacity:.55; filter: grayscale(.3); }
+    .btn[disabled], .btn.disabled, a.btn.disabled{ pointer-events:none !important; opacity:.6; cursor:not-allowed !important; }
   </style>
 </head>
 <body>
@@ -110,22 +103,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
-  <!-- ThemeManager v2.1 -->
   <script>
-  (function ThemeManager_v21(){
-    const root=document.documentElement; const LS='voucher-theme';
-    const sys=()=> (matchMedia && matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
-    function apply(t){ root.setAttribute('data-theme', t); dispatchEvent(new CustomEvent('themechange',{detail:{theme:t}})); }
-    (function init(){ apply(localStorage.getItem(LS) || sys()); })();
-    document.getElementById('themeBtn')?.addEventListener('click',()=>window.ThemeManager?.toggle());
-    window.ThemeManager={ getTheme(){return root.getAttribute('data-theme')||sys();}, setTheme(t){ if(t!=='light'&&t!=='dark')return; apply(t); localStorage.setItem(LS,t); }, toggle(){ this.setTheme(this.getTheme()==='dark'?'light':'dark'); } };
-    const fav=document.getElementById('favicon'); const icon=document.getElementById('themeIcon');
-    function assets(mode){ if(icon){icon.src=mode==='dark'?'assets/theme-dark.svg':'assets/theme-light.svg'; icon.alt=mode==='dark'?'Dark':'Light';} if(fav){fav.href=mode==='dark'?'assets/favicon-dark.svg':'assets/favicon-light.svg'; fav.href=fav.href.split('?')[0]+'?v='+Date.now();}}
-    assets(window.ThemeManager.getTheme()); addEventListener('themechange',e=>assets(e.detail.theme));
-  })();
-  </script>
-
-  <script>
+    // === Firebase init (GIỮ NGUYÊN) ===
     const firebaseConfig = {
       apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
       authDomain: "loginandsignin-4932b.firebaseapp.com",
@@ -134,10 +113,98 @@
       messagingSenderId: "863133586719",
       appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
     };
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db   = firebase.firestore();
+  </script>
 
+  <!-- ThemeSync v3: LocalStorage ⇄ Firestore + favicon + icon + BroadcastChannel (giống 404/about) -->
+  <script>
+  (function ThemeSyncV3(){
+    const LS_KEY='voucher-theme';
+    const root=document.documentElement;
+    const bc=('BroadcastChannel' in window)?new BroadcastChannel('theme-sync'):null;
+
+    let current=null, uid=null, unsubUser=null, suppressNext=false;
+
+    const getSystem=()=> (matchMedia && matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
+    function dispatchChange(theme){ try{window.dispatchEvent(new CustomEvent('themechange',{detail:{theme}}))}catch{} }
+    function assets(mode){
+      const icon=document.getElementById('themeIcon');
+      if(icon){ icon.src = mode==='dark'?'assets/theme-dark.svg':'assets/theme-light.svg'; icon.alt = mode==='dark'?'Dark':'Light'; }
+      const fav=document.getElementById('favicon');
+      if(fav){ fav.href = mode==='dark'?'assets/favicon-dark.svg':'assets/favicon-light.svg'; fav.href=fav.href.split('?')[0]+'?v='+Date.now(); }
+    }
+    function applyTheme(t){
+      current=t;
+      t?root.setAttribute('data-theme',t):root.removeAttribute('data-theme');
+      assets(t);
+      dispatchChange(t);
+      if(bc) bc.postMessage({type:'theme-applied', theme:t});
+    }
+    function getLocal(){ try{return localStorage.getItem(LS_KEY)}catch{return null} }
+    function setLocal(t){ try{ localStorage.setItem(LS_KEY,t) }catch{} }
+
+    async function setRemoteTheme(t){
+      if(!uid) return;
+      suppressNext=true;
+      try{
+        await db.collection('users').doc(uid).set({
+          prefs:{ theme:t, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }
+        }, {merge:true});
+      }finally{
+        setTimeout(()=> suppressNext=false, 250);
+      }
+    }
+
+    // API công khai giống 404/about
+    window.ThemeManager={
+      getTheme(){ return current || root.getAttribute('data-theme') || getLocal() || getSystem(); },
+      async setTheme(t){ if(t!=='light'&&t!=='dark')return; applyTheme(t); setLocal(t); await setRemoteTheme(t); },
+      async toggle(){ const next=this.getTheme()==='dark'?'light':'dark'; await this.setTheme(next); }
+    };
+
+    document.getElementById('themeBtn')?.addEventListener('click', ()=> window.ThemeManager.toggle());
+
+    // Sync đa tab
+    if(bc){ bc.onmessage=(ev)=>{ if(ev?.data?.type==='theme-applied'){ const t=ev.data.theme; if(t && t!==current) applyTheme(t); } }; }
+
+    // Áp theme ban đầu trước khi login
+    applyTheme(getLocal() || getSystem());
+
+    // Sau khi auth sẵn sàng → đồng bộ tài khoản
+    auth.onAuthStateChanged(async (user)=>{
+      if(unsubUser){ unsubUser(); unsubUser=null; }
+      uid = user?.uid || null;
+
+      if(!uid){ applyTheme(getLocal() || getSystem()); return; }
+
+      const userRef=db.collection('users').doc(uid);
+      const snap=await userRef.get();
+      let remoteTheme = snap.exists ? (snap.data()?.prefs?.theme || null) : null;
+
+      if(!remoteTheme){
+        remoteTheme = getLocal() || getSystem();
+        applyTheme(remoteTheme);
+        setLocal(remoteTheme);
+        await setRemoteTheme(remoteTheme);
+      }else{
+        setLocal(remoteTheme);
+        applyTheme(remoteTheme);
+      }
+
+      unsubUser = userRef.onSnapshot(s=>{
+        if(!s.exists) return;
+        const t=s.data()?.prefs?.theme; if(!t) return;
+        if(suppressNext) return;
+        if(t!==current){ setLocal(t); applyTheme(t); }
+      });
+    });
+  })();
+  </script>
+
+  <!-- ======= Voucher logic (GIỮ NGUYÊN) ======= -->
+  <script>
     const statusEl = document.getElementById('status');
     const listEl = document.getElementById('list');
     const q = document.getElementById('q');
