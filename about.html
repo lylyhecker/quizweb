@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Giới thiệu — Nhóm tác giả & Sản phẩm</title>
 
-  <!-- Favicon SVG (đổi theo theme giống trang quiz) -->
+  <!-- Favicon SVG (đổi theo theme giống trang 404) -->
   <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg" />
 
   <!-- Tailwind cho layout nhanh -->
@@ -13,23 +13,15 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
   <style>
-    /* ========= THEME ========= (khớp quiz) */
-    :root{
-      --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1;
-      --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444;
-      --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25);
-    }
+    /* ========= THEME ========= (khớp 404) */
+    :root{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
     @media (prefers-color-scheme: light){
-      :root{
-        --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280;
-        --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626;
-        --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08);
-      }
+      :root{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
     }
     :root[data-theme="light"]{ --bg:#f6f8fa; --bg-soft:#eef1f6; --card:#ffffff; --text:#111827; --muted:#6b7280; --primary:#2563eb; --primary-strong:#1e40af; --ok:#16a34a; --err:#dc2626; --border:rgba(0,0,0,.08); --shadow:0 10px 30px rgba(0,0,0,.08); }
     :root[data-theme="dark"]{ --bg:#0b1020; --bg-soft:#11162a; --card:#121a33; --text:#e7ecf7; --muted:#a8b2d1; --primary:#7aa2ff; --primary-strong:#5a86ff; --ok:#22c55e; --err:#ef4444; --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.25); }
 
-    /* ========= LAYOUT ========= */
+    /* ========= LAYOUT ========= (giữ nguyên) */
     html,body{height:100%}
     body{
       margin:0; color:var(--text);
@@ -40,46 +32,32 @@
         var(--bg);
     }
     .card{ background:var(--card); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); }
-    .btn{ appearance:none; border:none; cursor:pointer; background:var(--primary); color:#fff; font-weight:700; padding:10px 14px; border-radius:12px; transition: transform .12s ease, background .2s ease; box-shadow:0 6px 18px rgba(37,99,235,.25); text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+    .btn{ appearance:none; border:none; cursor:pointer; background:var(--primary); color:#fff; font-weight:700; padding:10px 14px; border-radius:12px; transition: transform .12s ease, background .2s ease; box-shadow:0 6px 18px rgba(37,99,235,.25); text-decoration:none; display:inline-flex; align-items:center; gap:8px; justify-content:center; }
     .btn:hover{ transform:translateY(-1px); background:var(--primary-strong); }
     .btn.secondary{ background:transparent; color:var(--text); border:1px solid var(--border); box-shadow:none; }
     .btn.secondary:hover{ background:var(--bg-soft); }
     .muted{ color: var(--muted); }
     .chip{ display:inline-flex; align-items:center; gap:8px; border:1px solid var(--border); padding:6px 10px; border-radius:999px; background:var(--bg-soft); font-size:12px; }
     .divider{ height:1px; background:var(--border); margin:16px 0; }
-
     .icon { width: 18px; height: 18px; object-fit: contain; display:inline-block }
 
-    /* ========= Author cards ========= */
+    /* ========= Author cards ========= (giữ nguyên) */
     .author-card{ border:1px solid var(--border); background:var(--bg-soft); border-radius:14px; padding:14px; }
     .author-head{ display:flex; gap:12px; align-items:center; justify-content:space-between; }
     .author-left{ display:flex; gap:12px; align-items:center; }
     .author-avatar{ width:64px; height:64px; border-radius:18px; box-shadow:var(--shadow); object-fit:cover; }
     .author-title{ font-weight:700; }
     .author-role{ font-size:12px; color:var(--muted); }
-
-    /* Collapsible (animated) */
-    .collapsible-content{
-      overflow:hidden;
-      max-height:0;
-      opacity:0;
-      transform: translateY(-4px);
-      transition: max-height .35s ease, opacity .25s ease, transform .25s ease;
-    }
-    .author-card[aria-expanded="true"] .collapsible-content{
-      opacity:1;
-      transform: translateY(0);
-      /* max-height set inline via JS để mượt */
-    }
+    .collapsible-content{ overflow:hidden; max-height:0; opacity:0; transform: translateY(-4px); transition: max-height .35s ease, opacity .25s ease, transform .25s ease; }
+    .author-card[aria-expanded="true"] .collapsible-content{ opacity:1; transform: translateY(0); }
     .author-card .toggle-icon{ transition: transform .25s ease; }
     .author-card[aria-expanded="true"] .toggle-icon{ transform: rotate(180deg); }
-
     .link-slim{ color:var(--primary); text-decoration:underline; text-underline-offset:2px; }
     .user-pic{ width:28px; height:28px; border-radius:999px; object-fit:cover; border:1px solid var(--border) }
   </style>
 </head>
 <body>
-  <!-- Header -->
+  <!-- Header (giữ nguyên) -->
   <header class="card max-w-6xl mx-auto mt-5 px-4 py-3">
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <div class="flex items-center gap-3">
@@ -93,7 +71,6 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <!-- Chip user: avatar local + tên -->
         <span id="userChip" class="chip hidden">
           <img id="userAvatar" class="user-pic" src="assets/avatar/default.png" alt="avatar">
           <span id="userName">Guest</span>
@@ -113,7 +90,7 @@
         </a>
         <a class="btn secondary" id="loginLink" href="login.html">Đăng nhập</a>
 
-        <!-- Theme: SVG đổi theo chế độ -->
+        <!-- Nút đổi theme giống 404 -->
         <button class="btn secondary" id="themeBtn" title="Đổi giao diện">
           <img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">
         </button>
@@ -122,7 +99,7 @@
   </header>
 
   <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
-    <!-- Hero -->
+    <!-- Hero (giữ nguyên) -->
     <section class="card p-6">
       <div class="grid md:grid-cols-2 gap-6 items-center">
         <div>
@@ -145,12 +122,12 @@
       </div>
     </section>
 
-    <!-- Team (expand on click) -->
+    <!-- Team (giữ nguyên) -->
     <section class="card p-6">
       <h3 class="text-xl font-bold mb-4">Nhóm Tác Giả & Giáo Viên Hướng Dẫn</h3>
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
-        <!-- Author 1 (avatar local) -->
+        <!-- Author 1 -->
         <article class="author-card" tabindex="0" role="button" aria-expanded="false" aria-controls="a1-content">
           <div class="author-head">
             <div class="author-left">
@@ -245,24 +222,6 @@
 
       </div>
     </section>
-
-    <!-- Tech -->
-    <section class="card p-6">
-      <h3 class="text-xl font-bold mb-2">Công nghệ</h3>
-      <ul class="list-disc pl-6 space-y-1 muted">
-        <li>Frontend: HTML5, TailwindCSS, Font Awesome</li>
-        <li>Auth & Database: Firebase Authentication, Firestore</li>
-        <li>QR: qrcodejs (trang voucher)</li>
-        <li>Theme: CSS variables + ThemeManager (LocalStorage ⇄ Firestore)</li>
-      </ul>
-      <div class="divider"></div>
-      <div class="flex flex-wrap gap-2">
-        <button class="btn secondary" onclick="startApp()">Bắt đầu</button>
-        <a class="btn" href="quiz_ai_assistant_app.html">
-          <i class="fa-solid fa-circle-play"></i> Dùng thử ngay
-        </a>
-      </div>
-    </section>
   </main>
 
   <footer class="max-w-6xl mx-auto px-4 pb-10 text-center muted">
@@ -282,125 +241,95 @@
       messagingSenderId: "863133586719",
       appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
     };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db   = firebase.firestore();
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   </script>
 
-  <!-- ThemeManager (giống trang quiz) -->
+  <!-- ThemeSync v3 (y như 404): đồng bộ LocalStorage ⇄ Firestore + icon + favicon + BroadcastChannel -->
   <script>
-  (function ThemeManagerInit(){
-    var ThemeManager;
-    const LS_KEY='voucher-theme', root=document.documentElement;
-    let currentTheme=null, isSaving=false, saveTimer=null; const SAVE_DELAY=250;
-    const getSystemPref=()=> (window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
-    const hasFS = ()=> (typeof firebase!=='undefined' && typeof firebase.firestore==='function');
+  (function ThemeSyncV3(){
+    const LS_KEY='voucher-theme';
+    const root=document.documentElement;
+    const bc=('BroadcastChannel' in window)?new BroadcastChannel('theme-sync'):null;
 
+    let current=null, uid=null, unsubUser=null, suppressNext=false;
+
+    const getSystem=()=> (matchMedia && matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
     function dispatchChange(theme){ try{window.dispatchEvent(new CustomEvent('themechange',{detail:{theme}}))}catch{} }
-    function applyTheme(t){ currentTheme=t; t?root.setAttribute('data-theme',t):root.removeAttribute('data-theme'); dispatchChange(t); }
-    function saveToLocal(t){ t?localStorage.setItem(LS_KEY,t):localStorage.removeItem(LS_KEY); }
+    function applyTheme(t){
+      current=t;
+      t?root.setAttribute('data-theme',t):root.removeAttribute('data-theme');
+      // cập nhật icon & favicon giống 404
+      const icon=document.getElementById('themeIcon');
+      if(icon){ icon.src = t==='dark'?'assets/theme-dark.svg':'assets/theme-light.svg'; icon.alt = t==='dark'?'Dark':'Light'; }
+      const fav=document.getElementById('favicon');
+      if(fav){ fav.href = t==='dark'?'assets/favicon-dark.svg':'assets/favicon-light.svg'; fav.href=fav.href.split('?')[0]+'?v='+Date.now(); }
+      dispatchChange(t);
+      if(bc) bc.postMessage({type:'theme-applied', theme:t});
+    }
+    function getLocal(){ try{return localStorage.getItem(LS_KEY)}catch{return null} }
+    function setLocal(t){ try{ localStorage.setItem(LS_KEY,t) }catch{} }
 
-    function waitForFb(cb){
-      try{ if(firebase?.apps?.length){ cb(); return; } }catch{}
-      const t=setInterval(()=>{ try{ if(firebase?.apps?.length){ clearInterval(t); cb(); } }catch{} },50);
-      setTimeout(()=>clearInterval(t),10000);
-    }
-    async function _saveToFS(t){
-      if(!hasFS()) return; const u=firebase.auth().currentUser; if(!u) return;
-      await firebase.firestore().collection('users').doc(u.uid).set({ prefs:{ theme:t, updatedAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge:true });
-    }
-    function saveFS(t){
-      if(isSaving) return; clearTimeout(saveTimer);
-      saveTimer=setTimeout(async()=>{ try{ isSaving=true; await _saveToFS(t);}catch(e){console.warn('[TM] save fail:',e)}finally{isSaving=false} }, SAVE_DELAY);
-    }
-
-    (function(){ const ls=localStorage.getItem(LS_KEY); applyTheme(ls||getSystemPref()); })();
-
-    let mql=null;
-    function attachSys(){
-      if(!window.matchMedia) return;
-      mql=window.matchMedia('(prefers-color-scheme: light)');
-      const onC=()=>{ const u=(firebase?.auth?.().currentUser); if(u) return; const sys=getSystemPref(); applyTheme(sys); saveToLocal(sys); };
-      try{ mql.addEventListener?mql.addEventListener('change',onC):mql.addListener(onC);}catch{}
-    }
-    function detachSys(){
-      if(!mql) return;
-      try{ mql.removeEventListener?mql.removeEventListener('change',()=>{}):mql.removeListener(()=>{});}catch{}
-      mql=null;
-    }
-    attachSys();
-
-    function bindToggle(){
-      const b=document.getElementById('themeBtn');
-      if(!b || b.__tmBound) return;
-      b.__tmBound=true;
-      b.addEventListener('click', ()=> window.ThemeManager?.toggle());
-    }
-    bindToggle();
-    const mo=new MutationObserver(()=>bindToggle());
-    mo.observe(document.documentElement,{childList:true,subtree:true});
-
-    if(!document.getElementById('themeBtn')){
-      const auto=document.createElement('button');
-      auto.id='themeBtn'; auto.title='Đổi giao diện';
-      auto.className='btn secondary';
-      auto.innerHTML='<img id="themeIcon" src="assets/theme-light.svg" class="icon" alt="theme">';
-      auto.style.cssText='position:fixed;right:12px;bottom:12px;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:12px;padding:8px 12px;z-index:9999;box-shadow:0 6px 18px rgba(0,0,0,.15);';
-      document.body.appendChild(auto); bindToggle();
-    }
-
-    waitForFb(()=>{
+    async function setRemoteTheme(t){
+      if(!uid) return;
+      suppressNext=true;
       try{
-        firebase.auth().onAuthStateChanged(async u=>{
-          if(!u){ attachSys(); const ls=localStorage.getItem(LS_KEY); applyTheme(ls||getSystemPref()); return; }
-          detachSys();
-          const now=document.documentElement.getAttribute('data-theme')||getSystemPref();
-          applyTheme(now); saveToLocal(now); saveFS(now);
-        });
-      }catch(e){ console.warn('[TM] auth watcher error:', e); }
-    });
+        await firebase.firestore().collection('users').doc(uid).set({
+          prefs:{ theme:t, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }
+        }, {merge:true});
+      }finally{
+        setTimeout(()=> suppressNext=false, 250);
+      }
+    }
 
-    window.addEventListener('storage', e=>{
-      if(e.key!==LS_KEY) return;
-      const next=e.newValue || getSystemPref();
-      if(next!==currentTheme) applyTheme(next);
-    });
-
-    ThemeManager = {
-      getTheme(){ return currentTheme || document.documentElement.getAttribute('data-theme') || getSystemPref(); },
-      async setTheme(t){ if(t!=='light'&&t!=='dark') return; applyTheme(t); saveToLocal(t); if(hasFS() && firebase.auth().currentUser) saveFS(t); },
-      async toggle(){ const cur=this.getTheme(); const next=(cur==='dark'?'light':'dark'); await this.setTheme(next); }
+    // API để nút bấm gọi
+    window.ThemeManager={
+      getTheme(){ return current || root.getAttribute('data-theme') || getLocal() || getSystem(); },
+      async setTheme(t){ if(t!=='light'&&t!=='dark')return; applyTheme(t); setLocal(t); await setRemoteTheme(t); },
+      async toggle(){ const next=this.getTheme()==='dark'?'light':'dark'; await this.setTheme(next); }
     };
-    try{ window.ThemeManager = ThemeManager; }catch{}
+    document.getElementById('themeBtn')?.addEventListener('click', ()=> window.ThemeManager.toggle());
+
+    // Sync đa tab
+    if(bc){
+      bc.onmessage=(ev)=>{ if(ev?.data?.type==='theme-applied'){ const t=ev.data.theme; if(t && t!==current) applyTheme(t); } };
+    }
+
+    // Áp theme ban đầu (khách)
+    applyTheme(getLocal() || getSystem());
+
+    // Login → đồng bộ theo tài khoản
+    firebase.auth().onAuthStateChanged(async (user)=>{
+      if(unsubUser){ unsubUser(); unsubUser=null; }
+      uid = user?.uid || null;
+
+      if(!uid){ applyTheme(getLocal() || getSystem()); return; }
+
+      const userRef=firebase.firestore().collection('users').doc(uid);
+      const snap=await userRef.get();
+      let remoteTheme = snap.exists ? (snap.data()?.prefs?.theme || null) : null;
+
+      if(!remoteTheme){
+        remoteTheme = getLocal() || getSystem();
+        applyTheme(remoteTheme);
+        setLocal(remoteTheme);
+        await setRemoteTheme(remoteTheme);
+      }else{
+        setLocal(remoteTheme);
+        applyTheme(remoteTheme);
+      }
+
+      unsubUser = userRef.onSnapshot(s=>{
+        if(!s.exists) return;
+        const t=s.data()?.prefs?.theme;
+        if(!t) return;
+        if(suppressNext) return;
+        if(t!==current){ setLocal(t); applyTheme(t); }
+      });
+    });
   })();
   </script>
 
-  <!-- Đồng bộ icon theme + favicon -->
-  <script>
-    const faviconEl = document.getElementById('favicon');
-    const themeIcon = document.getElementById('themeIcon');
-    function applyThemeAssets(mode){
-      if (themeIcon) {
-        themeIcon.src = mode === 'dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
-        themeIcon.alt = mode === 'dark' ? 'theme-dark' : 'theme-light';
-      }
-      if (faviconEl) {
-        faviconEl.href = mode === 'dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
-        const bust='?v='+Date.now();
-        faviconEl.href = faviconEl.href.split('?')[0] + bust;
-      }
-    }
-    (function initIcons(){
-      const mode = (window.ThemeManager?.getTheme && window.ThemeManager.getTheme()) || 'dark';
-      applyThemeAssets(mode);
-    })();
-    window.addEventListener('themechange', (e)=>{
-      const mode = e?.detail?.theme || 'dark';
-      applyThemeAssets(mode);
-    });
-  </script>
-
-  <!-- Logic điều hướng "Bắt đầu" -->
+  <!-- Điều hướng "Bắt đầu" (giữ nguyên) -->
   <script>
     function startApp() {
       const user = firebase.auth().currentUser;
@@ -409,7 +338,7 @@
     }
   </script>
 
-  <!-- Expand cards + Avatar local cho user -->
+  <!-- Expand cards + Avatar local cho user (giữ nguyên) -->
   <script>
     function setExpanded(card, expanded){
       card.setAttribute('aria-expanded', expanded ? 'true' : 'false');
@@ -448,9 +377,6 @@
     });
 
     // === Avatar local cho user đăng nhập ===
-    // Ưu tiên: users/{uid}.profile.avatarPath (ví dụ 'assets/avatar/user1.jpg')
-    // -> nếu không có dùng user.photoURL
-    // -> nếu không có dùng 'assets/avatar/default.png'
     firebase.auth().onAuthStateChanged(async (user)=>{
       const status = document.getElementById('authStatus');
       const chip   = document.getElementById('userChip');
@@ -495,11 +421,11 @@
     });
   </script>
 
-  <!-- ===== Username Validator (ASCII-only) ===== -->
+  <!-- ===== Username Validator (ASCII-only) (giữ nguyên) ===== -->
   <script>
     (function UsernameValidatorInit(){
       const NO_UNICODE_RE = /^[\x20-\x7E]+$/;
-      const USERNAME_ASCII_RE = /^(?!.*\.\.)(?!.*__)(?!.*--)[A-Za-z0-9](?:[A-Za-z0-9._-]{0,28}[A-Za-z0-9])$/;
+      const USERNAME_ASCII_RE = /^(?!.*\..)(?!.*__)(?!.*--)[A-Za-z0-9](?:[A-Za-z0-9._-]{0,28}[A-Za-z0-9])$/;
 
       function validateUsernameValue(val){
         const s = (val||"").trim();
