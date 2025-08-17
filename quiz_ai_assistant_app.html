@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz & Assistant App</title>
 
-  <!-- Favicon SVG (sẽ được JS đổi giữa light/dark) -->
+  <!-- Favicon SVG (ThemeSync sẽ tự đổi giữa light/dark) -->
   <link id="favicon" rel="icon" type="image/svg+xml" href="assets/favicon-light.svg" />
 
   <!-- Tailwind chỉ dùng cho layout/spacing -->
@@ -195,57 +195,92 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
+  <!-- ===== ThemeSync v3: LocalStorage ⇄ Firestore + favicon + icon + BroadcastChannel (giống 404/about) ===== -->
   <script>
-    /* ====== Theme toggle + đổi icon + đổi favicon theo theme ====== */
-    const root = document.documentElement;
-    const LS_KEY = 'voucher-theme';
-    const saved = localStorage.getItem(LS_KEY);
-    if (saved) root.setAttribute('data-theme', saved);
+  (function ThemeSyncV3(){
+    const LS_KEY='voucher-theme';
+    const root=document.documentElement;
+    const bc=('BroadcastChannel' in window)?new BroadcastChannel('theme-sync'):null;
 
-    const themeBtn = document.getElementById('themeBtn');
-    const themeIcon = document.getElementById('themeIcon');
-    const faviconEl = document.getElementById('favicon');
+    let current=null, uid=null, unsubUser=null, suppressNext=false;
 
-    function resolveTheme(){
-      const t = root.getAttribute('data-theme');
-      if (t === 'dark' || t === 'light') return t;
-      // nếu chưa set, suy ra theo system preference
-      return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    const getSystem=()=> (matchMedia && matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
+    function dispatchChange(theme){ try{window.dispatchEvent(new CustomEvent('themechange',{detail:{theme}}))}catch{} }
+    function assets(mode){
+      const icon=document.getElementById('themeIcon');
+      if(icon){ icon.src = mode==='dark'?'assets/theme-dark.svg':'assets/theme-light.svg'; icon.alt = mode==='dark'?'Dark':'Light'; }
+      const fav=document.getElementById('favicon');
+      if(fav){ fav.href = mode==='dark'?'assets/favicon-dark.svg':'assets/favicon-light.svg'; fav.href=fav.href.split('?')[0]+'?v='+Date.now(); }
     }
-    function applyThemeIcon(){
-      const mode = resolveTheme();
-      themeIcon.src = mode === 'dark' ? 'assets/theme-dark.svg' : 'assets/theme-light.svg';
-      themeIcon.alt = mode === 'dark' ? 'theme-dark' : 'theme-light';
+    function applyTheme(t){
+      current=t;
+      t?root.setAttribute('data-theme',t):root.removeAttribute('data-theme');
+      assets(t);
+      dispatchChange(t);
+      if(bc) bc.postMessage({type:'theme-applied', theme:t});
     }
-    function applyFavicon(){
-      const mode = resolveTheme();
-      if (faviconEl) {
-        faviconEl.href = mode === 'dark' ? 'assets/favicon-dark.svg' : 'assets/favicon-light.svg';
-        // Bắt Chrome refresh favicon ngay
-        const cacheBust = '?v=' + Date.now();
-        faviconEl.href = faviconEl.href.split('?')[0] + cacheBust;
+    function getLocal(){ try{return localStorage.getItem(LS_KEY)}catch{return null} }
+    function setLocal(t){ try{ localStorage.setItem(LS_KEY,t) }catch{} }
+
+    async function setRemoteTheme(t){
+      if(!uid) return;
+      suppressNext=true;
+      try{
+        await firebase.firestore().collection('users').doc(uid).set({
+          prefs:{ theme:t, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }
+        }, {merge:true});
+      }finally{
+        setTimeout(()=> suppressNext=false, 250);
       }
     }
-    // khởi tạo icon & favicon khi load
-    applyThemeIcon();
-    applyFavicon();
 
-    themeBtn.addEventListener('click', () => {
-      const cur = root.getAttribute('data-theme');
-      const next = !cur ? (resolveTheme() === 'dark' ? 'light' : 'dark') : (cur === 'dark' ? 'light' : 'dark');
-      root.setAttribute('data-theme', next);
-      localStorage.setItem(LS_KEY, next);
-      applyThemeIcon();
-      applyFavicon();
-    });
+    // API công khai giống các trang khác
+    window.ThemeManager={
+      getTheme(){ return current || root.getAttribute('data-theme') || getLocal() || getSystem(); },
+      async setTheme(t){ if(t!=='light'&&t!=='dark')return; applyTheme(t); setLocal(t); await setRemoteTheme(t); },
+      async toggle(){ const next=this.getTheme()==='dark'?'light':'dark'; await this.setTheme(next); }
+    };
 
-    // tự áp icon & favicon khi user đổi system theme (nếu không ép theme trong localStorage)
-    if (window.matchMedia){
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-        if (!localStorage.getItem(LS_KEY)) { applyThemeIcon(); applyFavicon(); }
+    document.getElementById('themeBtn')?.addEventListener('click', ()=> window.ThemeManager.toggle());
+
+    // Sync đa tab
+    if(bc){ bc.onmessage=(ev)=>{ if(ev?.data?.type==='theme-applied'){ const t=ev.data.theme; if(t && t!==current) applyTheme(t); } }; }
+
+    // Áp theme ban đầu trước khi login
+    applyTheme(getLocal() || getSystem());
+
+    // Sau khi auth sẵn sàng → đồng bộ tài khoản
+    firebase.auth().onAuthStateChanged(async (user)=>{
+      if(unsubUser){ unsubUser(); unsubUser=null; }
+      uid = user?.uid || null;
+
+      if(!uid){ applyTheme(getLocal() || getSystem()); return; }
+
+      const userRef=firebase.firestore().collection('users').doc(uid);
+      const snap=await userRef.get();
+      let remoteTheme = snap.exists ? (snap.data()?.prefs?.theme || null) : null;
+
+      if(!remoteTheme){
+        remoteTheme = getLocal() || getSystem();
+        applyTheme(remoteTheme);
+        setLocal(remoteTheme);
+        await setRemoteTheme(remoteTheme);
+      }else{
+        setLocal(remoteTheme);
+        applyTheme(remoteTheme);
+      }
+
+      unsubUser = userRef.onSnapshot(s=>{
+        if(!s.exists) return;
+        const t=s.data()?.prefs?.theme; if(!t) return;
+        if(suppressNext) return;
+        if(t!==current){ setLocal(t); applyTheme(t); }
       });
-    }
+    });
+  })();
+  </script>
 
+  <script>
     /* ====== API Gemini (giữ cấu trúc, bỏ emoji trong message) ====== */
     window.GEMINI_KEY = 'AIzaSyD1DdWMyjh5ne8zpJKXJ8GdxB1k2a8INOM';
 
